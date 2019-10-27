@@ -1,5 +1,10 @@
+import telebot
+import config 
+import os
+import json 
+from telebot.types import Message
+from telebot import types
 
-<<<<<<< HEAD
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -136,5 +141,4 @@ def save(content):
 
 print('Бот запущен')
 bot.polling()
-=======
->>>>>>> parent of 9de0fd2... Реализовал аутентификацию пользователей
+
