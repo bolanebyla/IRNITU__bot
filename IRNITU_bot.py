@@ -35,12 +35,18 @@ def ans(message:Message):
 
     # регистрация студента
     if message.data == 'student':
-        add_user(chat_id,'student')
+        if str(chat_id) in read():
+            bot.send_message(chat_id,'Вы уже зарегистрированы!')
+            return
+        
         msg = bot.send_message(chat_id,'Введите ФИО (через пробел)')
         bot.register_next_step_handler(msg, ask_name)
 
     # регистрация посетителя
     if message.data == 'visitor':
+        if str(chat_id) in read():
+            bot.send_message(chat_id,'Вы уже зарегистрированы!')
+            return
         msg = bot.send_message(chat_id, 'Введите номер договора')
         bot.register_next_step_handler(msg, ask_contract)
 
@@ -51,8 +57,7 @@ def ans(message:Message):
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, 'Вижу, что написал')
-    print(message.data)
+
 
 
 
@@ -67,6 +72,7 @@ def ask_contract(message):
         bot.register_next_step_handler(msg, ask_contract)
         return
     add_user(chat_id, text)
+    bot.send_message(chat_id, 'Вы успешно зарегистрировались!')
 
 
 # Ввод ФИО (для студентов)
@@ -77,6 +83,7 @@ def ask_name(message):
         msg = bot.send_message(chat_id, 'ФИО не может состоять из цифр, введите ещё раз.')
         bot.register_next_step_handler(msg, ask_name)
         return
+    add_user(chat_id, text, 'name')
     msg = bot.send_message(chat_id, 'Введите группу (в формате XXX-16-1)')
     bot.register_next_step_handler(msg, ask_group)
 
@@ -84,16 +91,38 @@ def ask_name(message):
 def ask_group(message):
     chat_id = message.chat.id
     text = message.text
-    print(text)
 
+    add_user(chat_id, text, 'group')
+    
+    bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_student())
 
-# Добавляем пользователя
-def add_user(chat_id, data): 
-    content = read()   
-    content[chat_id] = data
+# Основное меню студентов 
+def keyboard_main_menu_student():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Оборудование')
+    btn2 = types.KeyboardButton('Инструмент')
+    btn3 = types.KeyboardButton('Расходные материалы')
+    btn4 = types.KeyboardButton('Расписание кабинета')
+    markup.add(btn1, btn2, btn3, btn4)
+    return markup
+
+    # Добавляем пользователя
+def add_user(chat_id, data, key=''): 
+    chat_id = str(chat_id)
+    s = {}
+    content = read()
+    if key:
+        s[key] = data
+        if key == 'group':
+            content[chat_id]['group'] = data
+        else:
+            content[chat_id] = s
+    else:   
+        content[chat_id] = data
     save(content) 
-
     return 
+
+
 # Считываем список пользователей
 def read(): 
     if os.path.isfile('users.json'): 
