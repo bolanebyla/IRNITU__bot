@@ -1,7 +1,9 @@
 import telebot
-import config 
 import os
 import json 
+import openpyxl
+import config 
+from openpyxl import load_workbook
 from telebot.types import Message
 from telebot import types
 
@@ -50,6 +52,53 @@ def ans(message:Message):
         msg = bot.send_message(chat_id, 'Введите номер договора')
         bot.register_next_step_handler(msg, ask_contract)
 
+    # Описание оборудования
+    if message.data[:7] == 'info_eq':
+        name =  message.data[7:-1]
+        bot.send_message(chat_id, 'Описание\n' + name)
+        bot.send_message(chat_id, info_equipment(name))
+
+
+
+
+
+# Открываем BD
+def read_BD():
+    #wb = load_workbook(config.BD)
+    wb = load_workbook('BD.xlsx')
+    sheet = wb['Оборудование']
+    return sheet 
+
+ #Вывод списка элементов категории (возвращает список)
+def change_BD(kategory):
+    sheet = read_BD()
+    #data = {}
+    #data[kategory] = ''
+    data = []
+    i=2
+    val = ''
+    while(True):
+        val = sheet.cell(row = i, column = 1).value
+        if val == None:
+            break
+        #data[kategory] = data[kategory] + val + '\n'
+        data.append(val + '\n')
+        i+=1
+    return data
+
+# Возвращает описание оборудования
+def info_equipment(name):
+      sheet = read_BD()
+      i=2
+      while(True):
+        
+        val = sheet.cell(row = i, column = 1).value
+
+        if val == None:
+            return 'Описание не найдено'
+        if str(name) == str(val):
+            return (sheet.cell(row = i, column = 2).value)
+        i+=1
 
 
 
@@ -57,9 +106,17 @@ def ans(message:Message):
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     chat_id = message.chat.id
+    if message.text == 'Оборудование':
+        eq = change_BD('Оборудование')
+        bot.send_message(message.chat.id, 'Список оборудования:')
+        for i in range(len(eq)):
+            button = 'Описание'
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
+                                                    change_BD('Оборудование')[i]))
+            bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)        
 
-
-
+    
 
 
 
