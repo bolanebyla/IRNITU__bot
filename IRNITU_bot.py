@@ -44,7 +44,7 @@ def ans(message:Message):
         msg = bot.send_message(chat_id,'Введите ФИО (через пробел)')
         bot.register_next_step_handler(msg, ask_name)
 
-    # регистрация посетителя
+    # Регистрация посетителя
     if message.data == 'visitor':
         if str(chat_id) in read():
             bot.send_message(chat_id,'Вы уже зарегистрированы!')
@@ -56,22 +56,55 @@ def ans(message:Message):
     if message.data[:7] == 'info_eq':
         name =  message.data[7:-1]
         bot.send_message(chat_id, 'Описание\n' + name)
-        bot.send_message(chat_id, info_equipment(name))
+        bot.send_message(chat_id, info_equipment(name, 'Оборудование'))
 
 
 
 
+
+
+
+
+
+# Обработка текстовых сообщений
+@bot.message_handler(content_types=['text'])
+def text(message:Message):
+    chat_id = message.chat.id
+
+    # Вывод списка оборудования
+    if message.text == 'Оборудование':
+        eq = change_BD('Оборудование')
+        bot.send_message(message.chat.id, 'Список оборудования:')
+        for i in range(len(eq)):
+            button = 'Описание'
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
+                                                    change_BD('Оборудование')[i]))
+            bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
+    # Вывод списка инструментов
+    if message.text == 'Инструмент':
+        tools = change_BD('Инструмент')
+        print(tools)
+        tools_str =''
+        bot.send_message(message.chat.id, 'Доступный инструмент:')
+        for i in tools:
+            tools_str = tools_str + i
+        bot.send_message(message.chat.id, tools_str)
+            
+
+
+#--------ФУНКЦИИ---------#    
 
 # Открываем BD
-def read_BD():
+def read_BD(kategory):
     #wb = load_workbook(config.BD)
     wb = load_workbook('BD.xlsx')
-    sheet = wb['Оборудование']
+    sheet = wb[kategory]
     return sheet 
 
  #Вывод списка элементов категории (возвращает список)
 def change_BD(kategory):
-    sheet = read_BD()
+    sheet = read_BD(kategory)
     #data = {}
     #data[kategory] = ''
     data = []
@@ -87,8 +120,8 @@ def change_BD(kategory):
     return data
 
 # Возвращает описание оборудования
-def info_equipment(name):
-      sheet = read_BD()
+def info_equipment(name, kategory):
+      sheet = read_BD(kategory)
       i=2
       while(True):
         
@@ -99,25 +132,6 @@ def info_equipment(name):
         if str(name) == str(val):
             return (sheet.cell(row = i, column = 2).value)
         i+=1
-
-
-
-# Обработка текстовых сообщений
-@bot.message_handler(content_types=['text'])
-def text(message:Message):
-    chat_id = message.chat.id
-    if message.text == 'Оборудование':
-        eq = change_BD('Оборудование')
-        bot.send_message(message.chat.id, 'Список оборудования:')
-        for i in range(len(eq)):
-            button = 'Описание'
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
-                                                    change_BD('Оборудование')[i]))
-            bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)        
-
-    
-
 
 
 # Ввод номера договора (для посетителей)
