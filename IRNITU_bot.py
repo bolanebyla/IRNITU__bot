@@ -13,7 +13,6 @@ bot = telebot.TeleBot(config.TOKEN)
 
 
 
-
 # /start
 @bot.message_handler(commands=['start'])
 def start_message(message:Message):
@@ -55,13 +54,25 @@ def ans(message:Message):
     # Описание оборудования
     if message.data[:7] == 'info_eq':
         name =  message.data[7:-1]
-        bot.send_message(chat_id, 'Описание\n' + name)
-        bot.send_message(chat_id, info_equipment(name, 'Оборудование'))
 
+        keyboard = types.InlineKeyboardMarkup()
+        button = 'Свернуть описание'
+        keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'close_info_eq' + name))
 
+        bot.edit_message_text(name + '\n\nОписание:\n' + info_equipment(name, 'Оборудование'), 
+                              chat_id, message.message.message_id, reply_markup = keyboard)
 
+    # Свернуть описание обоудования
+    if message.data[:13] == 'close_info_eq':
+        name = message.data[13:]   
 
+        keyboard = types.InlineKeyboardMarkup()
+        button = 'Описание'
+        keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + name + '\n'))
+                                                   
+        bot.edit_message_text(name, chat_id, message.message.message_id, reply_markup = keyboard)
 
+       
 
 
 
@@ -71,6 +82,7 @@ def ans(message:Message):
 def text(message:Message):
     chat_id = message.chat.id
 
+       
     # Вывод списка оборудования
     if message.text == 'Оборудование':
         eq = change_BD('Оборудование')
@@ -94,6 +106,8 @@ def text(message:Message):
 
 
 #--------ФУНКЦИИ---------#    
+
+
 
 # Открываем BD
 def read_BD(kategory):
