@@ -11,6 +11,8 @@ from telebot import types
 
 bot = telebot.TeleBot(config.TOKEN)
 
+global BUFFER
+BUFFER = {}
 
 
 # /start
@@ -54,12 +56,11 @@ def ans(message:Message):
     # Описание оборудования
     if message.data[:7] == 'info_eq':
         name =  message.data[7:-1]
-
         keyboard = types.InlineKeyboardMarkup()
         button = 'Свернуть описание'
         keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'close_info_eq' + name))
 
-        bot.edit_message_text(name + '\n\nОписание:\n' + info_equipment(name, 'Оборудование'), 
+        bot.edit_message_text(name + info_equipment(name, 'Оборудование'), 
                               chat_id, message.message.message_id, reply_markup = keyboard)
 
     # Свернуть описание обоудования
@@ -72,8 +73,15 @@ def ans(message:Message):
                                                    
         bot.edit_message_text(name, chat_id, message.message.message_id, reply_markup = keyboard)
 
-       
-
+    if message.data[:13] == 'spend_exp_mat':
+        name = message.data[13:]
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+        btn = types.KeyboardButton('Отмена')
+        markup.add(btn)
+        msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
+        global BUFFER
+        BUFFER[chat_id] = name
+        bot.register_next_step_handler(msg, spend_kol)
 
 
 
@@ -96,18 +104,123 @@ def text(message:Message):
     # Вывод списка инструментов
     if message.text == 'Инструмент':
         tools = change_BD('Инструмент')
-        print(tools)
         tools_str =''
         bot.send_message(message.chat.id, 'Доступный инструмент:')
         for i in tools:
             tools_str = tools_str + i
         bot.send_message(message.chat.id, tools_str)
+
+    # Вывод списка расходных материалов
+    if message.text == 'Расходные материалы':
+        eq = change_BD('Расходные материалы')
+
+        bot.send_message(message.chat.id, 'Расходные материалы:')
+        for i in range(len(eq)):
+            name = change_BD('Расходные материалы')[i][:-1]
+            button1 = 'Израсходовать'
+            button2 = 'Отменить расходование'
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
+            bot.send_message(message.chat.id, name + ' ' + '(доступно: ' +
+                             str(exp_mat_kol(name, 'Расходные материалы')) + ' ' +
+                            exp_mat_ed_izm(name, 'Расходные материалы') + ')', 
+                             reply_markup = keyboard)    
+
+    # Вывод расписания кабинета
+    if message.text == 'Расписание кабинета':
+        pass
             
 
 
 #--------ФУНКЦИИ---------#    
 
+#==========Расходные материалы============#
 
+# Возвращает количество расходного материала
+def exp_mat_kol(name, kategory):
+      sheet = read_BD(kategory)
+      i=2
+      while(True):
+        
+        val = sheet.cell(row = i, column = 1).value
+
+        if str(name) == str(val):
+            if sheet.cell(row = i, column = 2).value == None :
+                return '0'
+            else:
+                return (sheet.cell(row = i, column = 2).value)
+        i+=1
+
+# Возвращает eдeницы измерения расходного материала
+def exp_mat_ed_izm(name, kategory):
+      sheet = read_BD(kategory)
+      i=2
+      while(True):
+        
+        val = sheet.cell(row = i, column = 1).value
+        if str(name) == str(val):
+            if sheet.cell(row = i, column = 2).value == None :
+                return ''
+            else:
+                return (sheet.cell(row = i, column = 3).value)
+        i+=1
+ # Уменьшает кол-во рас мат
+def spend_kol(message): 
+    chat_id = message.chat.id
+    text = message.text
+    global BUFFER
+    name = BUFFER[chat_id]
+    print (name)
+    #print(message)
+    if text == 'Отмена':
+        bot.send_message(chat_id, 'Отменено' ,reply_markup = keyboard_main_menu_student())
+        del BUFFER[chat_id]
+        return
+    text = int(text)
+    wb = load_workbook('BD.xlsx')
+    sheet = wb['Расходные материалы']
+    value = int(exp_mat_kol(name, 'Расходные материалы'))
+    print(value)
+    value -= text
+
+   #(вынести в отдельную функцию)
+    i=2
+    while(True):
+      
+       val = sheet.cell(row = i, column = 1).value
+       if str(name) == str(val):
+           sheet.cell(row = i, column = 2).value = value
+           wb.save('BD.xlsx')
+           print(sheet.cell(row = i, column = 2).value)
+           break
+       i+=1
+
+    del BUFFER[chat_id]
+    return
+
+#=========================================#
+
+#==========Оборудование============#
+
+
+def info_equipment(name, kategory): # Возвращает описание оборудования
+      sheet = read_BD(kategory)
+      i=2
+      while(True):
+        
+        val = sheet.cell(row = i, column = 1).value
+
+        if str(name) == str(val):
+            if sheet.cell(row = i, column = 2).value == None :
+                return '\n\nОписание не найдено'
+            else:
+                return '\n\nОписание:\n' + sheet.cell(row = i, column = 2).value
+        i+=1
+
+#==================================#
+
+#==========Считывание данных из базы данных============#
 
 # Открываем BD
 def read_BD(kategory):
@@ -116,7 +229,7 @@ def read_BD(kategory):
     sheet = wb[kategory]
     return sheet 
 
- #Вывод списка элементов категории (возвращает список)
+ # Вывод списка элементов категории (возвращает список)
 def change_BD(kategory):
     sheet = read_BD(kategory)
     #data = {}
@@ -132,26 +245,16 @@ def change_BD(kategory):
         data.append(val + '\n')
         i+=1
     return data
+#==================================#
 
-# Возвращает описание оборудования
-def info_equipment(name, kategory):
-      sheet = read_BD(kategory)
-      i=2
-      while(True):
-        
-        val = sheet.cell(row = i, column = 1).value
 
-        if val == None:
-            return 'Описание не найдено'
-        if str(name) == str(val):
-            return (sheet.cell(row = i, column = 2).value)
-        i+=1
-
+#==========Регистрация пользователей============#
 
 # Ввод номера договора (для посетителей)
 def ask_contract(message):
     chat_id = message.chat.id
     text = message.text
+
     if not text.isdigit():
         msg = bot.send_message(chat_id, 'Номер договора должен состоять из цифр, введите ещё раз.')
         bot.register_next_step_handler(msg, ask_contract)
@@ -222,7 +325,7 @@ def save(content):
     file=open('users.json', 'wt') 
     file.write(json.dumps(content))
 
-
+#==================================#
 
 print('Бот запущен')
 bot.polling()
