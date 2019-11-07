@@ -72,16 +72,21 @@ def ans(message:Message):
         keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + name + '\n'))
                                                    
         bot.edit_message_text(name, chat_id, message.message.message_id, reply_markup = keyboard)
-
+    # Кнопка израсходовать
     if message.data[:13] == 'spend_exp_mat':
         name = message.data[13:]
-        markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
-        btn = types.KeyboardButton('Отмена')
-        markup.add(btn)
-        msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
         global BUFFER
-        BUFFER[chat_id] = name
-        bot.register_next_step_handler(msg, spend_kol)
+        if (chat_id) in BUFFER:
+            bot.send_message(chat_id, 'Вы уже нажали на кнопку Израсходовать ( ' + name + ')'
+                            '\nВведите количество, либо нажмите кнопку Отмена')
+        else:
+            
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+            btn = types.KeyboardButton('Отмена')
+            markup.add(btn)
+            msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
+            BUFFER[chat_id] = name
+            bot.register_next_step_handler(msg, spend_kol)
 
 
 
@@ -89,6 +94,16 @@ def ans(message:Message):
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     chat_id = message.chat.id
+    # Присвоение статуса пользователю
+    user_data = read()[str(chat_id)]
+    if isinstance(user_data, dict):
+        user_status = 'student'
+    elif user_data == 'admin':
+        user_status = 'admin'
+    else:
+        user_status = 'visitor'
+
+
 
        
     # Вывод списка оборудования
@@ -130,7 +145,10 @@ def text(message:Message):
     # Вывод расписания кабинета
     if message.text == 'Расписание кабинета':
         pass
-            
+    # Кнопка отмена для студентов
+    if message.text == 'Отмена' and user_status == 'student':
+        bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
+        
 
 
 #--------ФУНКЦИИ---------#    
@@ -171,17 +189,18 @@ def spend_kol(message):
     text = message.text
     global BUFFER
     name = BUFFER[chat_id]
-    print (name)
+    print('зашло в функцию')
+    print(message)
+
     #print(message)
     if text == 'Отмена':
-        bot.send_message(chat_id, 'Отменено' ,reply_markup = keyboard_main_menu_student())
+        bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
         del BUFFER[chat_id]
         return
     text = int(text)
     wb = load_workbook('BD.xlsx')
     sheet = wb['Расходные материалы']
     value = int(exp_mat_kol(name, 'Расходные материалы'))
-    print(value)
     value -= text
 
    #(вынести в отдельную функцию)
@@ -192,10 +211,9 @@ def spend_kol(message):
        if str(name) == str(val):
            sheet.cell(row = i, column = 2).value = value
            wb.save('BD.xlsx')
-           print(sheet.cell(row = i, column = 2).value)
            break
        i+=1
-
+    bot.send_message(chat_id, 'Израсходовано ' + message.text, reply_markup = keyboard_main_menu_student())
     del BUFFER[chat_id]
     return
 
