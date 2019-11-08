@@ -14,12 +14,8 @@ bot = telebot.TeleBot(config.TOKEN)
 global BUFFER
 BUFFER = {}
 
-
-# /start
-@bot.message_handler(commands=['start'])
-def start_message(message:Message):
-    bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
-
+def registration(message):
+    BUFFER = {}
     keyboard = types.InlineKeyboardMarkup()
     button_student = 'Студент'
     button_visitor = 'Посетитель'
@@ -29,29 +25,43 @@ def start_message(message:Message):
 
     bot.send_message(message.chat.id,'Зарегистрировться как:', reply_markup = keyboard)
 
+# /start
+@bot.message_handler(commands=['start'])
+def start_message(message:Message):
+    bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
+    registration(message)
+
+
+
 
 
 # Обработка ответов от чат-клавиатуры
 @bot.callback_query_handler(func=lambda message:True)
 def ans(message:Message):
     chat_id = message.message.chat.id
-
+    global BUFFER
     # регистрация студента
     if message.data == 'student':
-        if str(chat_id) in read():
+        if str(chat_id) in read() and not check_start_reg(chat_id):
             bot.send_message(chat_id,'Вы уже зарегистрированы!')
             return
-        
-        msg = bot.send_message(chat_id,'Введите ФИО (через пробел)')
-        bot.register_next_step_handler(msg, ask_name)
+
+        if not check_start_reg(chat_id, True):
+            print('Что-то тут')
+            BUFFER[chat_id] = 'студент'
+            msg = bot.send_message(chat_id,'Введите ФИО (через пробел)')
+            bot.register_next_step_handler(msg, ask_name)
 
     # Регистрация посетителя
     if message.data == 'visitor':
-        if str(chat_id) in read():
+        if str(chat_id) in read() and not check_start_reg(chat_id):
             bot.send_message(chat_id,'Вы уже зарегистрированы!')
             return
-        msg = bot.send_message(chat_id, 'Введите номер договора')
-        bot.register_next_step_handler(msg, ask_contract)
+
+        if not check_start_reg(chat_id, True):
+            BUFFER[chat_id] = 'посетитель'
+            msg = bot.send_message(chat_id, 'Введите номер договора')
+            bot.register_next_step_handler(msg, ask_contract)
 
     # Описание оборудования
     if message.data[:7] == 'info_eq':
@@ -75,7 +85,6 @@ def ans(message:Message):
     # Кнопка израсходовать
     if message.data[:13] == 'spend_exp_mat':
         name = message.data[13:]
-        global BUFFER
         if (chat_id) in BUFFER:
             bot.send_message(chat_id, 'Вы уже нажали на кнопку Израсходовать ( ' + name + ')'
                             '\nВведите количество, либо нажмите кнопку Отмена')
@@ -94,20 +103,18 @@ def ans(message:Message):
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     chat_id = message.chat.id
-    # Присвоение статуса пользователю
-    user_data = read()[str(chat_id)]
-    if isinstance(user_data, dict):
-        user_status = 'student'
-    elif user_data == 'admin':
-        user_status = 'admin'
-    else:
-        user_status = 'visitor'
 
 
 
-       
+
+
+    # Присваивание статуса пользователю
+    user_status = read()[str(chat_id)]['status']
+
+
+  
     # Вывод списка оборудования
-    if message.text == 'Оборудование':
+    if message.text == 'Оборудование' and user_status == 'student':
         eq = change_BD('Оборудование')
         bot.send_message(message.chat.id, 'Список оборудования:')
         for i in range(len(eq)):
@@ -117,7 +124,7 @@ def text(message:Message):
                                                     change_BD('Оборудование')[i]))
             bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
     # Вывод списка инструментов
-    if message.text == 'Инструмент':
+    if message.text == 'Инструмент' and user_status == 'student':
         tools = change_BD('Инструмент')
         tools_str =''
         bot.send_message(message.chat.id, 'Доступный инструмент:')
@@ -126,7 +133,7 @@ def text(message:Message):
         bot.send_message(message.chat.id, tools_str)
 
     # Вывод списка расходных материалов
-    if message.text == 'Расходные материалы':
+    if message.text == 'Расходные материалы' and user_status == 'student':
         eq = change_BD('Расходные материалы')
 
         bot.send_message(message.chat.id, 'Расходные материалы:')
@@ -143,11 +150,13 @@ def text(message:Message):
                              reply_markup = keyboard)    
 
     # Вывод расписания кабинета
-    if message.text == 'Расписание кабинета':
+    if message.text == 'Расписание кабинета' and user_status == 'student':
         pass
     # Кнопка отмена для студентов
     if message.text == 'Отмена' and user_status == 'student':
         bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
+
+
         
 
 
@@ -189,8 +198,6 @@ def spend_kol(message):
     text = message.text
     global BUFFER
     name = BUFFER[chat_id]
-    print('зашло в функцию')
-    print(message)
 
     #print(message)
     if text == 'Отмена':
@@ -268,8 +275,45 @@ def change_BD(kategory):
 
 #==========Регистрация пользователей============#
 
+# Проверка начал ли пользователь регистрацию
+def check_start_reg(chat_id, send_msg=False):
+    print('вызвался чекер ', send_msg)
+    if chat_id in BUFFER:
+        if BUFFER[chat_id] == 'студент' or BUFFER[chat_id] == 'посетитель':
+            data = BUFFER[chat_id]
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+            btn = types.KeyboardButton('Начать регистрацию с начала') 
+            markup.add(btn)
+            if send_msg:
+                msg = bot.send_message(chat_id, 'Вы уже начали регистрацию как ' + data + 
+                            '\nЕсли хотите начать регистрацию с начала, нажмите на кнопку Начать регистрацию с начала\n'+
+                           'Если хотите продолжить регистрацию как ' + data +
+                          ', продолжайте вводить данные', reply_markup = markup)
+
+            return True 
+    return False
+           
+            
+def repeat_reg(message):
+    if message.text == 'Начать регистрацию с начала':
+        data = read()
+        if str(message.chat.id) in read():
+            del data[str(message.chat.id)]
+            save(data)
+        global BUFFER
+
+        if message.chat.id in BUFFER:
+            del BUFFER[message.chat.id]
+
+        return True
+    return False
+
 # Ввод номера договора (для посетителей)
 def ask_contract(message):
+
+    if repeat_reg(message):
+        return registration(message)
+
     chat_id = message.chat.id
     text = message.text
 
@@ -279,28 +323,43 @@ def ask_contract(message):
         return
     add_user(chat_id, text)
     bot.send_message(chat_id, 'Вы успешно зарегистрировались!')
+    del BUFFER[chat_id]
 
 
 # Ввод ФИО (для студентов)
 def ask_name(message):
+
+    if repeat_reg(message):
+        return registration(message)
+
     chat_id = message.chat.id
     text = message.text
+
+    if text == 'Начать регистрацию с начала':
+       return registration(message)
+
     if text.replace(' ', '').isdigit():
         msg = bot.send_message(chat_id, 'ФИО не может состоять из цифр, введите ещё раз.')
         bot.register_next_step_handler(msg, ask_name)
         return
+
     add_user(chat_id, text, 'name')
     msg = bot.send_message(chat_id, 'Введите группу (в формате XXX-16-1)')
     bot.register_next_step_handler(msg, ask_group)
 
 # Ввод группы (для студентов)
 def ask_group(message):
+
+    if repeat_reg(message):
+        return registration(message)
+
     chat_id = message.chat.id
     text = message.text
 
     add_user(chat_id, text, 'group')
     
     bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_student())
+    del BUFFER[chat_id]
 
 # Основное меню студентов 
 def keyboard_main_menu_student():
@@ -315,16 +374,26 @@ def keyboard_main_menu_student():
     # Добавляем пользователя
 def add_user(chat_id, data, key=''): 
     chat_id = str(chat_id)
-    s = {}
+    #s = {}
+    
     content = read()
-    if key:
-        s[key] = data
+    if key == 'admin':
+        s = {'status': 'admin'}
+        content[chat_id] = s
+
+    elif key:
+
         if key == 'group':
             content[chat_id]['group'] = data
         else:
+            s = {'status': 'student'}
+            s[key] = data
             content[chat_id] = s
-    else:   
-        content[chat_id] = data
+    
+    else:
+        s = {'status': 'visitor'}
+        content[chat_id] = s
+        content[chat_id]['number'] = data
     save(content) 
     return 
 
