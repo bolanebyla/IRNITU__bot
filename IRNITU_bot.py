@@ -81,12 +81,13 @@ def ans(message:Message):
         keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + name + '\n'))
                                                    
         bot.edit_message_text(name, chat_id, message.message.message_id, reply_markup = keyboard)
+
     # Кнопка израсходовать
     if message.data[:13] == 'spend_exp_mat':
         name = message.data[13:]
-        if str(chat_id) in BUFFER:
+        if str(chat_id) in BUFFER and BUFFER[str(chat_id)][-1] == 's' :
             
-            bot.send_message(chat_id, f'Вы уже нажали на кнопку Израсходовать ({BUFFER[str(chat_id)]})'+
+            bot.send_message(chat_id, f'Вы уже нажали на кнопку Израсходовать  ({BUFFER[str(chat_id)]})'+
                             '\nВведите количество, либо нажмите кнопку Отмена')
         else:
             
@@ -94,9 +95,26 @@ def ans(message:Message):
             btn = types.KeyboardButton('Отмена')
             markup.add(btn)
             msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
-            BUFFER[str(chat_id)] = name # Записываем в буфер название материала который выбрал пользователь
-            BUFFER['m_id'+ str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
-            bot.register_next_step_handler(msg, spend_kol)
+            BUFFER[str(chat_id)] = name + 's' # Записываем в буфер название материала который выбрал пользователь и действие (s-spend)
+            BUFFER['m_id' + str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
+            bot.register_next_step_handler(msg, change_kol)
+
+    # Кнопка отменить расходование
+    if message.data[:20] == 'cancel_spend_exp_mat':
+        name = message.data[20:]
+        if str(chat_id) in BUFFER and BUFFER[str(chat_id)][-1] == 'b':
+            
+            bot.send_message(chat_id, f'Вы уже нажали на кнопку Отменить расходование ({BUFFER[str(chat_id)]})'+
+                            '\nВведите количество, либо нажмите кнопку Отмена')
+        else:
+            
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+            btn = types.KeyboardButton('Отмена')
+            markup.add(btn)
+            msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
+            BUFFER[str(chat_id)] = name + 'b' # Записываем в буфер название материала который выбрал пользователь и действие (b-back)
+            BUFFER['m_id' + str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
+            bot.register_next_step_handler(msg, change_kol)
 
 
 
@@ -190,13 +208,12 @@ def exp_mat_ed_izm(name, kategory):
                 return (sheet.cell(row = i, column = 3).value)
         i+=1
 
- # Уменьшает кол-во рас мат в базе данных 
-def spend_kol(message): 
+ # Изменить кол-во рас мат в базе данных 
+def change_kol(message): 
     chat_id = message.chat.id
     text = message.text
     global BUFFER
-
-
+    action = BUFFER[str(chat_id)][-1] # Действие которое нужно выполнить(s-spend, b-back)
 
     if text == 'Отмена':
         bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
@@ -208,13 +225,13 @@ def spend_kol(message):
         data = float(text.replace(',', '.'))
     except:
         msg = bot.send_message(chat_id, 'Введите число!')
-        return bot.register_next_step_handler(msg, spend_kol)
+        return bot.register_next_step_handler(msg, change_kol)
 
     if data <= 0: # Если пользователь ввел значение меньше нуля
         msg = bot.send_message(chat_id, 'Значение должно быть больше нуля!')
-        return bot.register_next_step_handler(msg, spend_kol)
+        return bot.register_next_step_handler(msg, change_kol)
 
-    name = BUFFER[str(chat_id)] # Название материала
+    name = BUFFER[str(chat_id)][:-1] # Название материала
     message_id = BUFFER['m_id' + str(chat_id)] # id сообщения для редактирования количества
 
     wb = load_workbook('BD.xlsx')
@@ -226,11 +243,13 @@ def spend_kol(message):
         last_value = int(last_value)
 
 
-    value -= data
-
-    if value < 0: # Если пользователь расходует больше чем доступно
-        msg = bot.send_message(chat_id, f'Такого количества расходного материала нет (доступно: {last_value})')
-        return bot.register_next_step_handler(msg, spend_kol)
+    if action == 's':
+        value -= data
+        if value < 0: # Если пользователь расходует больше чем доступно
+            msg = bot.send_message(chat_id, f'Такого количества расходного материала нет (доступно: {last_value})')
+            return bot.register_next_step_handler(msg, change_kol)
+    elif action == 'b':
+        value += data
 
    # записывем новое значение в БД
     i=2
@@ -241,7 +260,7 @@ def spend_kol(message):
            wb.save('BD.xlsx')
            break
        i+=1
-    del BUFFER[str(chat_id)]
+
 
     # Меняем текст сообщения (количество)
     button1 = ('Израсходовать ' + 
@@ -252,8 +271,15 @@ def spend_kol(message):
     keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
     bot.edit_message_text(name, chat_id, message_id, reply_markup = keyboard)
 
-    return bot.send_message(chat_id, f'Израсходовано {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}', 
-                            reply_markup = keyboard_main_menu_student())
+    if action == 's': 
+        bot.send_message(chat_id, f'Израсходовано {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}',
+                         reply_markup = keyboard_main_menu_student())
+    if action == 'b': 
+        bot.send_message(chat_id, f'Возвращено {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}', 
+                         reply_markup = keyboard_main_menu_student())
+    del BUFFER[str(chat_id)]
+    del BUFFER['m_id' + str(chat_id)]
+    return
 
 #=========================================#
 
@@ -443,6 +469,6 @@ def save(content):
 
 #==================================#
 
-print('Бот запущен')
+print('Бот запущен...')
 bot.polling()
 
