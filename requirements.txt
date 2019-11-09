@@ -1,0 +1,5 @@
+requests==2.22.0
+pyTelegramBotAPI==3.6.6
+json5==0.8.4
+openpyxl==3.0.0
+six==1.12.0
