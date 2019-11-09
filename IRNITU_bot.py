@@ -28,6 +28,7 @@ def registration(message):
 # /start
 @bot.message_handler(commands=['start'])
 def start_message(message:Message):
+    print ('Нажили start', message)
     bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
     registration(message)
 
