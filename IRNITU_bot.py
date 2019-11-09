@@ -47,7 +47,6 @@ def ans(message:Message):
             return
 
         if not check_start_reg(chat_id, True):
-            print('Что-то тут')
             BUFFER[chat_id] = 'студент'
             msg = bot.send_message(chat_id,'Введите ФИО (через пробел)')
             bot.register_next_step_handler(msg, ask_name)
@@ -85,8 +84,9 @@ def ans(message:Message):
     # Кнопка израсходовать
     if message.data[:13] == 'spend_exp_mat':
         name = message.data[13:]
-        if (chat_id) in BUFFER:
-            bot.send_message(chat_id, 'Вы уже нажали на кнопку Израсходовать ( ' + name + ')'
+        if str(chat_id) in BUFFER:
+            
+            bot.send_message(chat_id, f'Вы уже нажали на кнопку Израсходовать ({BUFFER[str(chat_id)]})'+
                             '\nВведите количество, либо нажмите кнопку Отмена')
         else:
             
@@ -94,7 +94,8 @@ def ans(message:Message):
             btn = types.KeyboardButton('Отмена')
             markup.add(btn)
             msg = bot.send_message(chat_id, name +'\nВведите количество', reply_markup = markup)
-            BUFFER[chat_id] = name
+            BUFFER[str(chat_id)] = name # Записываем в буфер название материала который выбрал пользователь
+            BUFFER['m_id'+ str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
             bot.register_next_step_handler(msg, spend_kol)
 
 
@@ -103,9 +104,6 @@ def ans(message:Message):
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     chat_id = message.chat.id
-
-
-
 
 
     # Присваивание статуса пользователю
@@ -139,14 +137,13 @@ def text(message:Message):
         bot.send_message(message.chat.id, 'Расходные материалы:')
         for i in range(len(eq)):
             name = change_BD('Расходные материалы')[i][:-1]
-            button1 = 'Израсходовать'
+            button1 = ('Израсходовать ' + 
+                       f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
             button2 = 'Отменить расходование'
             keyboard = types.InlineKeyboardMarkup()
             keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
             keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-            bot.send_message(message.chat.id, name + ' ' + '(доступно: ' +
-                             str(exp_mat_kol(name, 'Расходные материалы')) + ' ' +
-                            exp_mat_ed_izm(name, 'Расходные материалы') + ')', 
+            bot.send_message(message.chat.id, name, 
                              reply_markup = keyboard)    
 
     # Вывод расписания кабинета
@@ -192,44 +189,78 @@ def exp_mat_ed_izm(name, kategory):
             else:
                 return (sheet.cell(row = i, column = 3).value)
         i+=1
- # Уменьшает кол-во рас мат
+
+ # Уменьшает кол-во рас мат в базе данных 
 def spend_kol(message): 
     chat_id = message.chat.id
     text = message.text
     global BUFFER
-    name = BUFFER[chat_id]
 
-    #print(message)
+
+
     if text == 'Отмена':
         bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
-        del BUFFER[chat_id]
-        return
-    text = int(text)
+        del BUFFER[str(chat_id)]
+        del BUFFER['m_id' + str(chat_id)]
+        return 
+
+    try:
+        data = float(text.replace(',', '.'))
+    except:
+        msg = bot.send_message(chat_id, 'Введите число!')
+        return bot.register_next_step_handler(msg, spend_kol)
+
+    if data <= 0: # Если пользователь ввел значение меньше нуля
+        msg = bot.send_message(chat_id, 'Значение должно быть больше нуля!')
+        return bot.register_next_step_handler(msg, spend_kol)
+
+    name = BUFFER[str(chat_id)] # Название материала
+    message_id = BUFFER['m_id' + str(chat_id)] # id сообщения для редактирования количества
+
     wb = load_workbook('BD.xlsx')
     sheet = wb['Расходные материалы']
-    value = int(exp_mat_kol(name, 'Расходные материалы'))
-    value -= text
+    value = float(exp_mat_kol(name, 'Расходные материалы'))
+    last_value = value
 
-   #(вынести в отдельную функцию)
+    if int(last_value) == float(last_value):
+        last_value = int(last_value)
+
+
+    value -= data
+
+    if value < 0: # Если пользователь расходует больше чем доступно
+        msg = bot.send_message(chat_id, f'Такого количества расходного материала нет (доступно: {last_value})')
+        return bot.register_next_step_handler(msg, spend_kol)
+
+   # записывем новое значение в БД
     i=2
     while(True):
-      
        val = sheet.cell(row = i, column = 1).value
        if str(name) == str(val):
            sheet.cell(row = i, column = 2).value = value
            wb.save('BD.xlsx')
            break
        i+=1
-    bot.send_message(chat_id, 'Израсходовано ' + message.text, reply_markup = keyboard_main_menu_student())
-    del BUFFER[chat_id]
-    return
+    del BUFFER[str(chat_id)]
+
+    # Меняем текст сообщения (количество)
+    button1 = ('Израсходовать ' + 
+               f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
+    button2 = 'Отменить расходование'
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+    keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
+    bot.edit_message_text(name, chat_id, message_id, reply_markup = keyboard)
+
+    return bot.send_message(chat_id, f'Израсходовано {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}', 
+                            reply_markup = keyboard_main_menu_student())
 
 #=========================================#
 
 #==========Оборудование============#
 
-
-def info_equipment(name, kategory): # Возвращает описание оборудования
+# Возвращает описание оборудования
+def info_equipment(name, kategory): 
       sheet = read_BD(kategory)
       i=2
       while(True):
@@ -247,7 +278,7 @@ def info_equipment(name, kategory): # Возвращает описание об
 
 #==========Считывание данных из базы данных============#
 
-# Открываем BD
+# Открываем BD (возвращаем страницу)
 def read_BD(kategory):
     #wb = load_workbook(config.BD)
     wb = load_workbook('BD.xlsx')
@@ -277,7 +308,6 @@ def change_BD(kategory):
 
 # Проверка начал ли пользователь регистрацию
 def check_start_reg(chat_id, send_msg=False):
-    print('вызвался чекер ', send_msg)
     if chat_id in BUFFER:
         if BUFFER[chat_id] == 'студент' or BUFFER[chat_id] == 'посетитель':
             data = BUFFER[chat_id]
@@ -293,7 +323,7 @@ def check_start_reg(chat_id, send_msg=False):
             return True 
     return False
            
-            
+# Удаляем данные из буффера и бд для пользователей, если пользователь нажал Начать регистрацию с начала             
 def repeat_reg(message):
     if message.text == 'Начать регистрацию с начала':
         data = read()
@@ -304,7 +334,6 @@ def repeat_reg(message):
 
         if message.chat.id in BUFFER:
             del BUFFER[message.chat.id]
-
         return True
     return False
 
