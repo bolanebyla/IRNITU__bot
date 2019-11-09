@@ -166,7 +166,8 @@ def text(message:Message):
 
     # Вывод расписания кабинета
     if message.text == 'Расписание кабинета' and user_status == 'student':
-        pass
+        timetable(chat_id)
+
     # Кнопка отмена для студентов
     if message.text == 'Отмена' and user_status == 'student':
         bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
@@ -302,6 +303,27 @@ def info_equipment(name, kategory):
 
 #==================================#
 
+
+#===========Расписание кабинета===========#
+def timetable(chat_id):
+    sheet = read_BD('Расписание кабинета')
+ 
+    i=2
+    data = ''
+    while(True):
+        day = sheet.cell(row = i, column = 1).value        
+        if day == None:
+            print(data)
+            return bot.send_message(chat_id, data)
+        time = sheet.cell(row = i, column = 2).value
+
+        data = data + f'{day}    {time}\n'
+        
+        i+=1
+
+#==================================#
+
+
 #==========Считывание данных из базы данных============#
 
 # Открываем BD (возвращаем страницу)
@@ -314,8 +336,7 @@ def read_BD(kategory):
  # Вывод списка элементов категории (возвращает список)
 def change_BD(kategory):
     sheet = read_BD(kategory)
-    #data = {}
-    #data[kategory] = ''
+
     data = []
     i=2
     val = ''
@@ -323,7 +344,6 @@ def change_BD(kategory):
         val = sheet.cell(row = i, column = 1).value
         if val == None:
             break
-        #data[kategory] = data[kategory] + val + '\n'
         data.append(val + '\n')
         i+=1
     return data
