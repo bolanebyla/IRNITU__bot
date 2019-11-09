@@ -39,6 +39,7 @@ def start_message(message:Message):
 # Обработка ответов от чат-клавиатуры
 @bot.callback_query_handler(func=lambda message:True)
 def ans(message:Message):
+    print ('Кнопка', message)
     chat_id = message.message.chat.id
     global BUFFER
     # регистрация студента
@@ -122,8 +123,12 @@ def ans(message:Message):
 # Обработка текстовых сообщений
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
+    print ('Что-то написали', message)
     chat_id = message.chat.id
 
+    if not str(chat_id) in read():
+        bot.send_message(message.chat.id, 'Вы ещё не зарегистрировались!')
+        return
 
     # Присваивание статуса пользователю
     user_status = read()[str(chat_id)]['status']
@@ -491,5 +496,6 @@ def save(content):
 #==================================#
 
 print('Бот запущен...')
+
 bot.polling()
 
