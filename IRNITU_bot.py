@@ -175,8 +175,15 @@ def text(message:Message):
     user_status = read()[str(chat_id)]['status']
 
 #===========================ДЛЯ ПОСЕТИТЕЛЕЙ=================================#
+    
+    # Расписание
     if message.text == 'Расписание' and user_status == 'visitor':
         bot.send_message(chat_id, timetable_visitor(chat_id))
+    
+    # Отработка
+    elif message.text == 'Ближайшая отработка' and user_status == 'visitor':
+        bot.send_message(chat_id, otrabotka(chat_id))
+
         # Основное меню для посетителей
     elif message.text == 'Основное меню' and user_status == 'visitor':
         bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
@@ -265,6 +272,18 @@ def change_BD(kategory):
 
 
 #=============================================ДЛЯ ПОСЕТИТЕЛЕЙ========================================#
+
+# Ближайшая отработка
+def otrabotka(chat_id):
+    sheet = read_BD('Информация для посетителей')
+    i = search_contract_number(chat_id)
+    j = search_categories('Ближайшая отработка')
+
+    date = str(sheet.cell(row = i, column = j).value)
+    time_lesson = str(sheet.cell(row = i, column = j+1).value)[:-3] 
+    print(date)
+    return timer.timer_otrabotka(date, time_lesson)
+
 
 # Расписание занятий
 def timetable_visitor(chat_id):
