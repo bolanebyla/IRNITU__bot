@@ -1,8 +1,8 @@
 
 IRNITU_bot.pyproj
-config.py
 testBD.py
 IRNITU_bot.pyproj
 *.pyproj
 *.pyproj
 users.json
+config.py
