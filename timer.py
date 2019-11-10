@@ -34,7 +34,6 @@ def timer_otrabotka(data='', time_lesson = ''):
     print (msg)
     return msg
 
-timer_otrabotka('11.11.2019', '15:00')
 
 def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_lesson2=''):
     time_lesson1 = time_lesson1.split(':') # Время занятия 1
@@ -106,5 +105,3 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     msg = 'Следующее занятие состоится: {} ({}) в {} (через {} д {} ч {} мин {} сек)'.format(zanatie.strftime("%d.%m.%Y"),zanatie.strftime("%A"), time_lesson, period.days, hh, mm, ss)
     print(msg)
     return msg
-
-timer_lesson(weekday_lesson1='чт', time_lesson1='19:00', weekday_lesson2='сб',  time_lesson2='15:00')
