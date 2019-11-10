@@ -8,7 +8,9 @@ TZ_IRKUTSK = pytz.timezone('Asia/Irkutsk') # Часовой пояс
 
 def timer_otrabotka(date='', time_lesson = ''):
     global TZ_IRKUTSK
-    
+    print(date)
+    if date == 'None' or time_lesson == 'None':
+        return 'Ближайших отработок нет'
     time_lesson = time_lesson.split(':')
     print(time_lesson)
 
