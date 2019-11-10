@@ -23,29 +23,33 @@ print(now.strftime("%d %B %Y (%a)"))
 weekday_now = (now.strftime('%a')).lower()
 print(weekday_now)
 
-#=======================================================#
-time_zan ='9:30' # Время занятия 
+#====================Получить данные из БД==========================#
+time_zan ='14:00' # Время занятия 
 time_zan = time_zan.split(':')
-weekday_zan = 'вт'  # День недели занятия
+weekday_zan = 'вс'  # День недели занятия
 #=======================================================#
 
 # Определяем сколько дней до ближайшего занятия
-k=0
-f = False
-for i in weekday:
+if int(time_zan[0])<=h and int(time_zan[1])<=m:
+    k=8
+else:
+    print('зашло')
+    f = False
+    k=0
+    for i in weekday:
     
-    k+=1
-    if i == weekday_now:
-        f = True
-        k=0
         k+=1
-    if i == weekday_zan and f == True :
-        break
-    if i == 'вс' and k!=0:
-        for j in weekday:
+        if i == weekday_now:
+            f = True
+            k=0
             k+=1
-            if j == weekday_zan:
-                break
+        if i == weekday_zan and f == True :
+            break
+        if i == 'вс' and k!=0:
+            for j in weekday:
+                k+=1
+                if j == weekday_zan:
+                    break
 
 
 zanatie_date = now + timedelta(k-1)
