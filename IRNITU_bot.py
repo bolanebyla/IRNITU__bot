@@ -3,6 +3,7 @@ import os
 import json 
 import openpyxl
 import config 
+import timer
 from openpyxl import load_workbook
 from telebot.types import Message
 from telebot import types
@@ -173,7 +174,14 @@ def text(message:Message):
     # Присваивание статуса пользователю
     user_status = read()[str(chat_id)]['status']
 
+#===========================ДЛЯ ПОСЕТИТЕЛЕЙ=================================#
+    if message.text == 'Расписание' and user_status == 'visitor':
+        bot.send_message(chat_id, timetable_visitor(chat_id))
+        # Основное меню для посетителей
+    elif message.text == 'Основное меню' and user_status == 'visitor':
+        bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
 
+#===========================ДЛЯ СТУДЕНТОВ=================================#
     # Вывод списка оборудования
     if message.text == 'Оборудование' and user_status == 'student':
         eq = change_BD('Оборудование')
@@ -221,17 +229,108 @@ def text(message:Message):
     elif message.text == 'Основное меню' and user_status == 'student':
         bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
 
-    else:
+    elif user_status == 'student':
         bot.send_message(chat_id, 'Я вас не понимаю')
-        if user_status == 'student':
-            bot.send_message(chat_id, 'Выберите пункт из меню', reply_markup = keyboard_main_menu_student())
+        bot.send_message(chat_id, 'Выберите пункт из меню', reply_markup = keyboard_main_menu_student())
 
 
 
 
 
-#--------ФУНКЦИИ---------#    
+#--------ФУНКЦИИ---------#  
+#==========Считывание данных из базы данных============#
 
+# Открываем BD (возвращаем страницу)
+def read_BD(kategory):
+    #wb = load_workbook(config.BD)
+    wb = load_workbook('BD.xlsx')
+    sheet = wb[kategory]
+    return sheet 
+
+ # Вывод списка элементов категории (возвращает первый столбец)
+def change_BD(kategory):
+    sheet = read_BD(kategory)
+
+    data = []
+    i=2
+    val = ''
+    while(True):
+        val = sheet.cell(row = i, column = 1).value
+        if val == None:
+            break
+        data.append(val + '\n')
+        i+=1
+    return data
+#==================================#  
+
+
+#=============================================ДЛЯ ПОСЕТИТЕЛЕЙ========================================#
+
+# Расписание занятий
+def timetable_visitor(chat_id):
+    sheet = read_BD('Информация для посетителей')
+    i = search_contract_number(chat_id)
+    j = search_categories('Занятие 1')
+
+    weekday_lesson1 = sheet.cell(row = i, column = j).value
+    time_lesson1 = (str(sheet.cell(row = i, column = j+1).value))[:-3]
+    weekday_lesson2 = sheet.cell(row = i, column = j+2).value
+    time_lesson2 = (str(sheet.cell(row = i, column = j+3).value))[:-3]
+    cabinet = sheet.cell(row = i, column = j+4).value
+
+    msg = ('Расписание занятий:\n'+
+           f'{weekday_lesson1}  {time_lesson1}\n' + 
+           f'{weekday_lesson2}  {time_lesson2}\n' +
+           f'Аудитория {cabinet}\n\n' +
+           timer.timer_lesson(weekday_lesson1, time_lesson1, weekday_lesson2, time_lesson2))
+    return msg
+
+
+# Номер столбца
+def search_categories(name): # принимает название столбца
+    sheet = read_BD('Информация для посетителей')
+    j=1
+    while True:
+        val = sheet.cell(row = 1, column = j).value
+        if  str(val) == None:
+            return print('Ошибка! Категория в БД не найдена')
+        if  str(val) == name:
+            return j 
+            break
+        j+=1
+
+# номер строки которая соответствует номеру договора
+def search_contract_number(chat_id):
+    sheet = read_BD('Информация для посетителей')
+    i=3
+    j = search_categories('Номер договора')
+
+    number = read()[str(chat_id)]['number']
+    while(True):
+        val = sheet.cell(row = i, column = j).value
+
+        if number == str(val):
+            return i
+
+        if sheet.cell(row = i, column = j).value == None :
+            return bot.send_message(chat_id, 'Произошла ошибка. Попробуйте снова через какое-то время. Если это потвориться обратитесь к преподователю') 
+        i+=1
+
+
+
+
+
+
+#====================================================================================================#
+
+
+
+
+
+
+
+
+#======================================================ДЛЯ СТУДЕНТОВ==============================================#
 #==========Расходные материалы============#
 
 # Возвращает количество расходного материала
@@ -378,7 +477,6 @@ def timetable(chat_id):
     while(True):
         day = sheet.cell(row = i, column = 1).value        
         if day == None:
-            print(data)
             return bot.send_message(chat_id, data, reply_markup = main_menu_student())
         time = sheet.cell(row = i, column = 2).value
 
@@ -389,30 +487,7 @@ def timetable(chat_id):
 #==================================#
 
 
-#==========Считывание данных из базы данных============#
 
-# Открываем BD (возвращаем страницу)
-def read_BD(kategory):
-    #wb = load_workbook(config.BD)
-    wb = load_workbook('BD.xlsx')
-    sheet = wb[kategory]
-    return sheet 
-
- # Вывод списка элементов категории (возвращает список)
-def change_BD(kategory):
-    sheet = read_BD(kategory)
-
-    data = []
-    i=2
-    val = ''
-    while(True):
-        val = sheet.cell(row = i, column = 1).value
-        if val == None:
-            break
-        data.append(val + '\n')
-        i+=1
-    return data
-#==================================#
 
 
 #==========Регистрация пользователей============#
@@ -462,8 +537,16 @@ def ask_contract(message):
         bot.register_next_step_handler(msg, ask_contract)
         return
     add_user(chat_id, text)
-    bot.send_message(chat_id, 'Вы успешно зарегистрировались!')
+    bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_visitor())
     del BUFFER[chat_id]
+
+def keyboard_main_menu_visitor():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn2 = types.KeyboardButton('Расписание')
+    btn1 = types.KeyboardButton('Задолжность')
+    btn3 = types.KeyboardButton('Ближайшая отработка')
+    markup.add(btn1, btn2, btn3)
+    return markup
 
 
 # Ввод ФИО (для студентов)
@@ -521,7 +604,6 @@ def main_menu_student():
     # Добавляем пользователя
 def add_user(chat_id, data, key=''): 
     chat_id = str(chat_id)
-    #s = {}
     
     content = read()
     if key == 'admin':
