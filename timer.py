@@ -30,7 +30,7 @@ def timer_otrabotka(data='', time_lesson = ''):
     
     if str(period)[0] == '-':
         return 'Ближайших отработок нет'
-    msg = 'Отработка состоится: {} ({}) в {} (через {} д {} ч {} мин {} сек)'.format(otrabotka.strftime("%d.%m.%Y"), otrabotka.strftime("%A"), time_lesson, period.days, hh, mm, ss)
+    msg = 'Отработка состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), otrabotka.strftime("%A"), time_lesson, period.days, hh, mm, ss)
     print (msg)
     return msg
 
@@ -38,7 +38,7 @@ def timer_otrabotka(data='', time_lesson = ''):
 def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_lesson2=''):
     time_lesson1 = time_lesson1.split(':') # Время занятия 1
     time_lesson2 = time_lesson2.split(':') # Время занятия 2
-    weekday_lessons = (weekday_lesson1, weekday_lesson2)
+    weekday_lessons = (weekday_lesson1.lower(), weekday_lesson2.lower())
     time_lessons = (time_lesson1, time_lesson2)
 
     global TZ_IRKUTSK
@@ -102,6 +102,6 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
 
     mm, ss = divmod(period.seconds, 60)
     hh, mm = divmod(mm, 60)
-    msg = 'Следующее занятие состоится: {} ({}) в {} (через {} д {} ч {} мин {} сек)'.format(zanatie.strftime("%d.%m.%Y"),zanatie.strftime("%A"), time_lesson, period.days, hh, mm, ss)
+    msg = 'Следующее занятие состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(zanatie.strftime("%d.%m.%Y"),zanatie.strftime("%A"), time_lesson, period.days, hh, mm, ss)
     print(msg)
     return msg
