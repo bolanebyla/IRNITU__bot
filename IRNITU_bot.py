@@ -176,6 +176,7 @@ def text(message:Message):
 
 #===========================ДЛЯ ПОСЕТИТЕЛЕЙ=================================#
     
+
     # Расписание
     if message.text == 'Расписание' and user_status == 'visitor':
         bot.send_message(chat_id, timetable_visitor(chat_id))
@@ -183,6 +184,11 @@ def text(message:Message):
     # Отработка
     elif message.text == 'Ближайшая отработка' and user_status == 'visitor':
         bot.send_message(chat_id, otrabotka(chat_id))
+
+    # Задолжность по оплате
+    elif message.text == 'Задолжность' and user_status == 'visitor':
+        bot.send_message(chat_id, owe(chat_id))
+
 
         # Основное меню для посетителей
     elif message.text == 'Основное меню' and user_status == 'visitor':
@@ -273,6 +279,18 @@ def change_BD(kategory):
 
 #=============================================ДЛЯ ПОСЕТИТЕЛЕЙ========================================#
 
+# Задолжность
+def owe(chat_id):
+    sheet = read_BD('Информация для посетителей')
+    i = search_contract_number(chat_id)
+    j = search_categories('Задолженность по оплате')
+
+    sum = sheet.cell(row = i, column = j).value
+    if sum == None:
+        return 'Задолжности нет'
+    return f'Задолжность по оплате {sum} руб'
+
+
 # Ближайшая отработка
 def otrabotka(chat_id):
     sheet = read_BD('Информация для посетителей')
@@ -281,7 +299,6 @@ def otrabotka(chat_id):
 
     date = str(sheet.cell(row = i, column = j).value)
     time_lesson = str(sheet.cell(row = i, column = j+1).value)[:-3] 
-    print(date)
     return timer.timer_otrabotka(date, time_lesson)
 
 
@@ -296,11 +313,13 @@ def timetable_visitor(chat_id):
     weekday_lesson2 = sheet.cell(row = i, column = j+2).value
     time_lesson2 = (str(sheet.cell(row = i, column = j+3).value))[:-3]
     cabinet = sheet.cell(row = i, column = j+4).value
+    teacher_name = sheet.cell(row = i, column = j+5).value
 
     msg = ('Расписание занятий:\n'+
            f'{weekday_lesson1}  {time_lesson1}\n' + 
            f'{weekday_lesson2}  {time_lesson2}\n' +
            f'Аудитория {cabinet}\n\n' +
+           f'Преподаватель\n{teacher_name}\n\n'+
            timer.timer_lesson(weekday_lesson1, time_lesson1, weekday_lesson2, time_lesson2))
     return msg
 
