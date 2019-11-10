@@ -6,10 +6,11 @@ import pytz
 global TZ_IRKUTSK
 TZ_IRKUTSK = pytz.timezone('Asia/Irkutsk') # Часовой пояс
 
-def timer_otrabotka(data='', time_lesson = ''):
+def timer_otrabotka(date='', time_lesson = ''):
     global TZ_IRKUTSK
     
     time_lesson = time_lesson.split(':')
+    print(time_lesson)
 
     now = datetime.now(TZ_IRKUTSK)
     year = int(now.strftime('%Y'))
@@ -20,17 +21,21 @@ def timer_otrabotka(data='', time_lesson = ''):
     s = int(now.strftime('%S'))
     now = datetime(year, month, day,h, m, s) # Текущее время
 
-    data = data.split('.')
-    otrabotka = datetime(int(data[2]), int(data[1]), int(data[0]), int(time_lesson[0]),int(time_lesson[1]))
+    date = date.split(' ')[0].split('-')
+    year = int(date[0])
+    month = int(date[1])
+    day = int(date[2])
+
+    otrabotka = datetime(year, month, day, int(time_lesson[0]),int(time_lesson[1]))
     time_lesson = time_lesson[0] + ':' + time_lesson[1]
     period = otrabotka - now # Сколько осталось
 
     mm, ss = divmod(period.seconds, 60)
     hh, mm = divmod(mm, 60)
     
-    if str(period)[0] == '-':
+    if str(period)[0] == '-' or date == None or time_lesson == None:
         return 'Ближайших отработок нет'
-    msg = 'Отработка состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), otrabotka.strftime("%A"), time_lesson, period.days, hh, mm, ss)
+    msg = 'Отработка состоится:\n{} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), otrabotka.strftime("%A"), time_lesson, period.days, hh, mm, ss)
     print (msg)
     return msg
 
