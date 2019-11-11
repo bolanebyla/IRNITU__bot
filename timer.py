@@ -72,7 +72,7 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     for m in range (2):
         # Определяем сколько дней до ближайшего занятия
         if weekday_now == weekday_lessons[m] and int(time_lessons[m][0])<=h and int(time_lessons[m][1])<=m:
-            k=8
+            k=7
         else:
             f = False
             k=0
