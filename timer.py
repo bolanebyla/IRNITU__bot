@@ -49,6 +49,9 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     weekday_lessons = (weekday_lesson1.lower(), weekday_lesson2.lower())
     time_lessons = (time_lesson1, time_lesson2)
 
+
+
+
     global TZ_IRKUTSK
     weekday = ('пн','вт','ср','чт','пт','сб','вс')
 
@@ -63,6 +66,13 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     print(now)
     print(now.strftime("%d %B %Y (%a)")) 
     weekday_now = (now.strftime('%a')).lower() # Текущий день недели
+
+    print('weekday_now', weekday_now)
+    weekday_en = {'mon':'пн','tue':'вт', 'web':'ср', 'thu':'чт', 'fri':'пт', 'sat':'сб', 'sun':'вс'}
+
+    if weekday_now in weekday_en:
+        weekday_now = weekday_en[weekday_now]
+    print('weekday_now', weekday_now)
 
 
     data  = [{'k': 0, 'time_lesson': time_lesson1}, {'k': 0, 'time_lesson': time_lesson2}]
@@ -111,6 +121,16 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
 
     mm, ss = divmod(period.seconds, 60)
     hh, mm = divmod(mm, 60)
-    msg = 'Следующее занятие состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(zanatie.strftime("%d.%m.%Y"),zanatie.strftime("%A"), time_lesson, period.days, hh, mm, ss)
+
+    weekday = zanatie.strftime("%A")
+
+    weekday_en_ful = {'Monday': 'Понедельник', 'Tuesday': 'Вторник', 'Wednesday': 'Среда', 'Thursday': 'Четверг', 'Friday': 'Пятница', 'Saturday': 'Суббота', 'Sunday': 'Воскресенье'}
+    if weekday in weekday_en_ful:
+       weekday = weekday_en_ful[weekday] 
+
+
+    msg = 'Следующее занятие состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(zanatie.strftime("%d.%m.%Y"), weekday, time_lesson, period.days, hh, mm, ss)
     print(msg)
     return msg
+
+timer_lesson(weekday_lesson1='вт', time_lesson1='19:00', weekday_lesson2='чт', time_lesson2='15:00')
