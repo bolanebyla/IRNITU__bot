@@ -34,7 +34,41 @@ def start_message(message:Message):
     bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
     registration(message)
 
+@bot.message_handler(commands=['reg'])
+def repeat_registration(message):
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Продолжить')
+    btn2 = types.KeyboardButton('Отмена')
+    markup.add(btn1, btn2)
 
+    msg = bot.send_message(message.chat.id, 'Вы уверены, что хотите пройти повторную регистрацию?\n' + 
+                     'После нажатия кнопки Продолжить, отмена будет невозможна!' +
+                     'Текущая ученная запись будет удалена', reply_markup = markup)
+    bot.register_next_step_handler(msg, repeat_registration_answer)
+
+
+def repeat_registration_answer(message):
+    if message.text == 'Продолжить':
+        print('Продолжить')
+        content = read()
+        del content[str(message.chat.id)]
+        save(content)
+        registration(message)
+
+    else:
+        if not str(message.chat.id) in read():
+            bot.send_message(message.chat.id, 'Вы ещё не зарегистрировались!')
+            return registration(message)
+            
+        user_status = read()[str(message.chat.id)]['status']
+        if user_status == 'student':
+            return bot.send_message(message.chat.id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
+        elif user_status == 'visitor':
+            return bot.send_message(message.chat.id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
+        elif user_status == 'admin':
+            pass
+
+ 
 
 
 
@@ -337,7 +371,7 @@ def search_categories(name): # принимает название столбц�
             break
         j+=1
 
-# номер строки которая соответствует номеру договора
+# Номер строки которая соответствует номеру договора
 def search_contract_number(chat_id):
     sheet = read_BD('Информация для посетителей')
     i=3
@@ -351,7 +385,8 @@ def search_contract_number(chat_id):
             return i
 
         if sheet.cell(row = i, column = j).value == None :
-            return bot.send_message(chat_id, 'Произошла ошибка. Попробуйте снова через какое-то время. Если это потвориться обратитесь к преподователю') 
+            #bot.send_message(chat_id, 'Произошла ошибка. Попробуйте снова через какое-то время. Если это потвориться обратитесь к преподавателю') 
+            return False
         i+=1
 
 
@@ -574,10 +609,51 @@ def ask_contract(message):
         msg = bot.send_message(chat_id, 'Номер договора должен состоять из цифр, введите ещё раз.')
         bot.register_next_step_handler(msg, ask_contract)
         return
-    add_user(chat_id, text)
-    bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_visitor())
-    del BUFFER[chat_id]
 
+    add_user(chat_id, text)
+    
+
+    # Проверка ФИО посетителя
+    sheet = read_BD('Информация для посетителей')
+    i = search_contract_number(chat_id)
+    j = search_categories('ФИО посетителя')
+
+    if not i:
+        content = read()
+        del content[str(chat_id)]
+        save(content)
+        msg = bot.send_message(chat_id, 'Номер вашего договора отсутстует в списке! ' + 
+                               'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
+        return bot.register_next_step_handler(msg, ask_contract)
+    
+    
+
+    user_name = sheet.cell(row = i, column = j).value
+
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Да')
+    btn2 = types.KeyboardButton('Нет')
+    markup.add(btn1, btn2)
+
+    msg = bot.send_message(chat_id, f'ФИО псетителя {user_name}?', reply_markup = markup)
+    bot.register_next_step_handler(msg, name_confirmation)
+
+
+
+# Подтверждение правильности введенных данных для посетителей
+def name_confirmation(message):
+    chat_id = message.chat.id
+    if message.text == 'Нет':
+        content = read()
+        del content[str(chat_id)]
+        save(content)
+        msg = bot.send_message(chat_id, 'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
+        bot.register_next_step_handler(msg, ask_contract)
+    elif message.text == 'Да':
+        del BUFFER[chat_id]
+        bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_visitor())
+
+# Основное меню для посетителей
 def keyboard_main_menu_visitor():
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
     btn2 = types.KeyboardButton('Расписание')
