@@ -640,7 +640,7 @@ def ask_contract(message):
     btn2 = types.KeyboardButton('Нет')
     markup.add(btn1, btn2)
 
-    msg = bot.send_message(chat_id, f'ФИО псетителя {user_name}?', reply_markup = markup)
+    msg = bot.send_message(chat_id, f'ФИО посетителя {user_name}?', reply_markup = markup)
     bot.register_next_step_handler(msg, name_confirmation)
 
 
