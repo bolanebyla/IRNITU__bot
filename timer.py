@@ -38,7 +38,15 @@ def timer_otrabotka(date='', time_lesson = ''):
     
     if str(period)[0] == '-' or date == None or time_lesson == None:
         return 'Ближайших отработок нет'
-    msg = 'Отработка состоится:\n{} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), otrabotka.strftime("%A"), time_lesson, period.days, hh, mm, ss)
+
+    weekday = otrabotka.strftime("%A")
+
+    weekday_en_ful = {'Monday': 'Понедельник', 'Tuesday': 'Вторник', 'Wednesday': 'Среда', 'Thursday': 'Четверг', 'Friday': 'Пятница', 'Saturday': 'Суббота', 'Sunday': 'Воскресенье'}
+    # Переводим день недели на русский
+    if weekday in weekday_en_ful:
+       weekday = weekday_en_ful[weekday] 
+
+    msg = 'Отработка состоится:\n{} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), weekday, time_lesson, period.days, hh, mm, ss)
     print (msg)
     return msg
 
@@ -63,16 +71,13 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     m = int(now.strftime('%M'))
     s = int(now.strftime('%S'))
     now = datetime(year, month, day,h, m, s) # Текущее время
-    print(now)
     print(now.strftime("%d %B %Y (%a)")) 
     weekday_now = (now.strftime('%a')).lower() # Текущий день недели
 
-    print('weekday_now', weekday_now)
     weekday_en = {'mon':'пн','tue':'вт', 'web':'ср', 'thu':'чт', 'fri':'пт', 'sat':'сб', 'sun':'вс'}
-
+    # Переводим день недели на русский
     if weekday_now in weekday_en:
         weekday_now = weekday_en[weekday_now]
-    print('weekday_now', weekday_now)
 
 
     data  = [{'k': 0, 'time_lesson': time_lesson1}, {'k': 0, 'time_lesson': time_lesson2}]
@@ -103,7 +108,6 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
                             k-=1
                             break
         data[m]['k'] = k
-        print(k)
         if data [m]['k'] < best_distance:
             best_distance = data[m]['k']
             time_lesson = data[m]['time_lesson']
@@ -125,6 +129,7 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     weekday = zanatie.strftime("%A")
 
     weekday_en_ful = {'Monday': 'Понедельник', 'Tuesday': 'Вторник', 'Wednesday': 'Среда', 'Thursday': 'Четверг', 'Friday': 'Пятница', 'Saturday': 'Суббота', 'Sunday': 'Воскресенье'}
+    # Переводим день недели на русский
     if weekday in weekday_en_ful:
        weekday = weekday_en_ful[weekday] 
 
