@@ -210,75 +210,80 @@ def text(message:Message):
 
 #===========================ДЛЯ ПОСЕТИТЕЛЕЙ=================================#
     
-
-    # Расписание
-    if message.text == 'Расписание' and user_status == 'visitor':
-        bot.send_message(chat_id, timetable_visitor(chat_id))
+    if user_status == 'visitor':
+        # Расписание
+        if message.text == 'Расписание':
+            bot.send_message(chat_id, timetable_visitor(chat_id))
     
-    # Отработка
-    elif message.text == 'Ближайшая отработка' and user_status == 'visitor':
-        bot.send_message(chat_id, otrabotka(chat_id))
+        # Отработка
+        elif message.text == 'Ближайшая отработка':
+            bot.send_message(chat_id, otrabotka(chat_id))
 
-    # Задолжность по оплате
-    elif message.text == 'Задолжность' and user_status == 'visitor':
-        bot.send_message(chat_id, owe(chat_id))
+        # Задолжность по оплате
+        elif message.text == 'Задолжность':
+            bot.send_message(chat_id, owe(chat_id))
 
 
-        # Основное меню для посетителей
-    elif message.text == 'Основное меню' and user_status == 'visitor':
-        bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
+            # Основное меню для посетителей
+        elif message.text == 'Основное меню':
+            bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_visitor())
+        else:
+            bot.send_message(chat_id, 'Я вас не понимаю')
+            bot.send_message(chat_id, 'Выберите пункт из меню', reply_markup = keyboard_main_menu_visitor())
 
 #===========================ДЛЯ СТУДЕНТОВ=================================#
-    # Вывод списка оборудования
-    if message.text == 'Оборудование' and user_status == 'student':
-        eq = change_BD('Оборудование')
-        bot.send_message(message.chat.id, 'Список оборудования:', reply_markup = main_menu_student())
-        for i in range(len(eq)):
-            button = 'Описание'
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
-                                                    change_BD('Оборудование')[i]))
-            bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
-    # Вывод списка инструментов
-    elif message.text == 'Инструмент' and user_status == 'student':
-        tools = change_BD('Инструмент')
-        tools_str =''
-        bot.send_message(message.chat.id, 'Доступный инструмент:', reply_markup = main_menu_student())
-        for i in tools:
-            tools_str = tools_str + i
-        bot.send_message(message.chat.id, tools_str)
+        
+    if user_status == 'student':
+        # Вывод списка оборудования
+        if message.text == 'Оборудование' :
+            eq = change_BD('Оборудование')
+            bot.send_message(message.chat.id, 'Список оборудования:', reply_markup = main_menu_student())
+            for i in range(len(eq)):
+                button = 'Описание'
+                keyboard = types.InlineKeyboardMarkup()
+                keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
+                                                        change_BD('Оборудование')[i]))
+                bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
+        # Вывод списка инструментов
+        elif message.text == 'Инструмент':
+            tools = change_BD('Инструмент')
+            tools_str =''
+            bot.send_message(message.chat.id, 'Доступный инструмент:', reply_markup = main_menu_student())
+            for i in tools:
+                tools_str = tools_str + i
+            bot.send_message(message.chat.id, tools_str)
 
-    # Вывод списка расходных материалов
-    elif message.text == 'Расходные материалы' and user_status == 'student':
-        eq = change_BD('Расходные материалы')
+        # Вывод списка расходных материалов
+        elif message.text == 'Расходные материалы':
+            eq = change_BD('Расходные материалы')
 
-        bot.send_message(message.chat.id, 'Расходные материалы:', reply_markup = main_menu_student())
-        for i in range(len(eq)):
-            name = change_BD('Расходные материалы')[i][:-1]
-            button1 = ('Израсходовать ' + 
-                       f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-            button2 = 'Вернуть'
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-            bot.send_message(message.chat.id, name, 
-                             reply_markup = keyboard)    
+            bot.send_message(message.chat.id, 'Расходные материалы:', reply_markup = main_menu_student())
+            for i in range(len(eq)):
+                name = change_BD('Расходные материалы')[i][:-1]
+                button1 = ('Израсходовать ' + 
+                           f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
+                button2 = 'Вернуть'
+                keyboard = types.InlineKeyboardMarkup()
+                keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+                keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
+                bot.send_message(message.chat.id, name, 
+                                 reply_markup = keyboard)    
 
-    # Вывод расписания кабинета
-    elif message.text == 'Расписание кабинета' and user_status == 'student':
-        timetable(chat_id)
+        # Вывод расписания кабинета
+        elif message.text == 'Расписание кабинета':
+            timetable(chat_id)
 
-    # Кнопка отмена для студентов
-    elif message.text == 'Отмена' and user_status == 'student':
-        bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
+        # Кнопка отмена для студентов
+        elif message.text == 'Отмена':
+            bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
 
-    # Кнопка основное меню для студентов
-    elif message.text == 'Основное меню' and user_status == 'student':
-        bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
+        # Кнопка основное меню для студентов
+        elif message.text == 'Основное меню':
+            bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
 
-    elif user_status == 'student':
-        bot.send_message(chat_id, 'Я вас не понимаю')
-        bot.send_message(chat_id, 'Выберите пункт из меню', reply_markup = keyboard_main_menu_student())
+        else:
+            bot.send_message(chat_id, 'Я вас не понимаю')
+            bot.send_message(chat_id, 'Выберите пункт из меню', reply_markup = keyboard_main_menu_student())
 
 
 
