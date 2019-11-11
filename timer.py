@@ -60,6 +60,7 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     m = int(now.strftime('%M'))
     s = int(now.strftime('%S'))
     now = datetime(year, month, day,h, m, s) # Текущее время
+    print(now)
     print(now.strftime("%d %B %Y (%a)")) 
     weekday_now = (now.strftime('%a')).lower() # Текущий день недели
 
