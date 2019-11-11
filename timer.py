@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 import locale
-locale.setlocale(locale.LC_ALL, "")
 import pytz
+
+locale.setlocale(locale.LC_ALL, "ru")
 
 global TZ_IRKUTSK
 TZ_IRKUTSK = pytz.timezone('Asia/Irkutsk') # Часовой пояс
