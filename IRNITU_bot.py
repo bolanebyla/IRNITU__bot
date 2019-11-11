@@ -193,20 +193,52 @@ def ans(message:Message):
 
 
 
-# Обработка текстовых сообщений
+#======================================================Обработка текстовых сообщений=================================#
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
     print ('Что-то написали', message.json)
 
     chat_id = message.chat.id
 
+    # Переход в режим Администратора
+    if message.text == config.ADMIN_PASS:
+        add_user(chat_id, key='admin')
+        bot.send_message(chat_id, 'Вы успешно зарегистрировались как Администратор!', reply_markup = keyboard_main_menu_admin())
+
+
+    # Если пользователь что-то написал до регистрации
     if not str(chat_id) in read():
         bot.send_message(message.chat.id, 'Вы ещё не зарегистрировались!')
         registration(message)
         return
 
+
     # Присваивание статуса пользователю
     user_status = read()[str(chat_id)]['status']
+
+
+#===========================ДЛЯ АДМИНИСТРАТОРА==============================#
+    if user_status == 'admin':
+        if message.text == 'Основное меню':
+            bot.send_message(chat_id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_admin())
+        if message.text == 'Написать сообщение посетителям':
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+            btn1 = types.KeyboardButton('Отмена')
+            markup.add(btn1)
+            msg = bot.send_message(chat_id, 'Введите сообщение для отправки (после того как вы отпраите сообщение в чат, оно придёт всем посетителям)',
+                                   reply_markup=markup)
+            bot.register_next_step_handler(msg, send_message_visitors)
+
+        if message.text == 'Написать сообщение студентам':
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+            btn1 = types.KeyboardButton('Отмена')
+            markup.add(btn1)
+            msg = bot.send_message(chat_id, 'Введите сообщение для отправки (после того как вы отпраите сообщение в чат, оно придёт всем посетителям)',
+                                   reply_markup=markup)
+            bot.register_next_step_handler(msg, send_message_students)
+
+#===========================================================================#
+
 
 #===========================ДЛЯ ПОСЕТИТЕЛЕЙ=================================#
     
@@ -348,13 +380,15 @@ def repeat_reg(message):
     return False
 
     # Добавляем пользователя
-def add_user(chat_id, data, key=''): 
+def add_user(chat_id, data='', key=''): 
     chat_id = str(chat_id)
     
     content = read()
     if key == 'admin':
         s = {'status': 'admin'}
         content[chat_id] = s
+        save(content)
+        return
 
     elif key:
 
@@ -386,6 +420,43 @@ def read():
 def save(content): 
     file=open('users.json', 'wt') 
     file.write(json.dumps(content))
+#====================================================================================================#
+
+#==========================================ДЛЯ АДМИНИСТРАТОРОВ=======================================#
+
+def keyboard_main_menu_admin():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Написать сообщение посетителям')
+    btn2 = types.KeyboardButton('Написать сообщение студентам')
+    btn3 = types.KeyboardButton('Написать сообщение пользователю (по id)')
+    markup.add(btn1)
+    markup.add(btn2)
+    markup.add(btn3)
+    return markup
+
+def send_message_visitors(message):
+    text = message.text
+    if text=='Отмена':
+        return bot.send_message(message.chat.id, 'Отменено', reply_markup = keyboard_main_menu_admin())
+    users = read()
+    for i in users.keys():
+        if users[i]['status'] == 'visitor':
+            bot.send_message(i, text)
+    bot.send_message(message.chat.id, 'Сообщение отправлено', reply_markup = keyboard_main_menu_admin())
+
+def send_message_students(message):
+    text = message.text
+    if text=='Отмена':
+        return bot.send_message(message.chat.id, 'Отменено', reply_markup = keyboard_main_menu_admin())
+    users = read()
+    for i in users.keys():
+        if users[i]['status'] == 'student':
+            bot.send_message(i, text)
+    bot.send_message(message.chat.id, 'Сообщение отправлено', reply_markup = keyboard_main_menu_admin())
+            
+
+    
+
 #====================================================================================================#
 
 
