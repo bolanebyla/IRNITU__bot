@@ -313,7 +313,82 @@ def change_BD(kategory):
         data.append(val + '\n')
         i+=1
     return data
-#==================================#  
+
+#==========Регистрация пользователей============#
+
+# Проверка начал ли пользователь регистрацию
+def check_start_reg(chat_id, send_msg=False):
+    if chat_id in BUFFER:
+        if BUFFER[chat_id] == 'студент' or BUFFER[chat_id] == 'посетитель':
+            data = BUFFER[chat_id]
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+            btn = types.KeyboardButton('Начать регистрацию с начала') 
+            markup.add(btn)
+            if send_msg:
+                msg = bot.send_message(chat_id, 'Вы уже начали регистрацию как ' + data + 
+                            '\nЕсли хотите начать регистрацию с начала, нажмите на кнопку Начать регистрацию с начала\n'+
+                           'Если хотите продолжить регистрацию как ' + data +
+                          ', продолжайте вводить данные', reply_markup = markup)
+
+            return True 
+    return False
+           
+# Удаляем данные из буффера и бд для пользователей, если пользователь нажал Начать регистрацию с начала             
+def repeat_reg(message):
+    if message.text == 'Начать регистрацию с начала':
+        data = read()
+        if str(message.chat.id) in read():
+            del data[str(message.chat.id)]
+            save(data)
+        global BUFFER
+
+        if message.chat.id in BUFFER:
+            del BUFFER[message.chat.id]
+        return True
+    return False
+
+    # Добавляем пользователя
+def add_user(chat_id, data, key=''): 
+    chat_id = str(chat_id)
+    
+    content = read()
+    if key == 'admin':
+        s = {'status': 'admin'}
+        content[chat_id] = s
+
+    elif key:
+
+        if key == 'group':
+            content[chat_id]['group'] = data
+        else:
+            s = {'status': 'student'}
+            s[key] = data
+            content[chat_id] = s
+    
+    else:
+        s = {'status': 'visitor'}
+        content[chat_id] = s
+        content[chat_id]['number'] = data
+    save(content) 
+    return 
+
+
+# Считываем список пользователей
+def read(): 
+    if os.path.isfile('users.json'): 
+        file=open('users.json').read() 
+        if file: 
+            content=json.loads(file) 
+            return content 
+    return {} 
+
+# Сохраняем список пользователей
+def save(content): 
+    file=open('users.json', 'wt') 
+    file.write(json.dumps(content))
+#====================================================================================================#
+
+
 
 
 #=============================================ДЛЯ ПОСЕТИТЕЛЕЙ========================================#
@@ -394,9 +469,72 @@ def search_contract_number(chat_id):
             return False
         i+=1
 
+#==========Регистрация пользователей (посетитель)============#
+
+# Ввод номера договора (для посетителей)
+def ask_contract(message):
+
+    if repeat_reg(message):
+        return registration(message)
+
+    chat_id = message.chat.id
+    text = message.text
+
+    if not text.isdigit():
+        msg = bot.send_message(chat_id, 'Номер договора должен состоять из цифр, введите ещё раз.')
+        bot.register_next_step_handler(msg, ask_contract)
+        return
+
+    add_user(chat_id, text)
+    
+
+    # Проверка ФИО посетителя
+    sheet = read_BD('Информация для посетителей')
+    i = search_contract_number(chat_id)
+    j = search_categories('ФИО посетителя')
+
+    if not i:
+        content = read()
+        del content[str(chat_id)]
+        save(content)
+        msg = bot.send_message(chat_id, 'Номер вашего договора отсутстует в списке! ' + 
+                               'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
+        return bot.register_next_step_handler(msg, ask_contract)
+    
+    
+
+    user_name = sheet.cell(row = i, column = j).value
+
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Да')
+    btn2 = types.KeyboardButton('Нет')
+    markup.add(btn1, btn2)
+
+    msg = bot.send_message(chat_id, f'ФИО посетителя {user_name}?', reply_markup = markup)
+    bot.register_next_step_handler(msg, name_confirmation)
 
 
+# Подтверждение правильности введенных данных для посетителей
+def name_confirmation(message):
+    chat_id = message.chat.id
+    if message.text == 'Нет':
+        content = read()
+        del content[str(chat_id)]
+        save(content)
+        msg = bot.send_message(chat_id, 'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
+        bot.register_next_step_handler(msg, ask_contract)
+    elif message.text == 'Да':
+        del BUFFER[chat_id]
+        bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_visitor())
 
+# Основное меню для посетителей
+def keyboard_main_menu_visitor():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn2 = types.KeyboardButton('Расписание')
+    btn1 = types.KeyboardButton('Задолжность')
+    btn3 = types.KeyboardButton('Ближайшая отработка')
+    markup.add(btn1, btn2, btn3)
+    return markup
 
 
 #====================================================================================================#
@@ -409,6 +547,7 @@ def search_contract_number(chat_id):
 
 
 #======================================================ДЛЯ СТУДЕНТОВ==============================================#
+
 #==========Расходные материалы============#
 
 # Возвращает количество расходного материала
@@ -524,8 +663,6 @@ def change_kol(message):
     del BUFFER['m_id' + str(chat_id)]
     return
 
-#=========================================#
-
 #==========Оборудование============#
 
 # Возвращает описание оборудования
@@ -543,7 +680,6 @@ def info_equipment(name, kategory):
                 return '\n\nОписание:\n' + sheet.cell(row = i, column = 2).value
         i+=1
 
-#==================================#
 
 
 #===========Расписание кабинета===========#
@@ -562,111 +698,9 @@ def timetable(chat_id):
         
         i+=1
 
-#==================================#
 
 
-
-
-
-#==========Регистрация пользователей============#
-
-# Проверка начал ли пользователь регистрацию
-def check_start_reg(chat_id, send_msg=False):
-    if chat_id in BUFFER:
-        if BUFFER[chat_id] == 'студент' or BUFFER[chat_id] == 'посетитель':
-            data = BUFFER[chat_id]
-            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-            btn = types.KeyboardButton('Начать регистрацию с начала') 
-            markup.add(btn)
-            if send_msg:
-                msg = bot.send_message(chat_id, 'Вы уже начали регистрацию как ' + data + 
-                            '\nЕсли хотите начать регистрацию с начала, нажмите на кнопку Начать регистрацию с начала\n'+
-                           'Если хотите продолжить регистрацию как ' + data +
-                          ', продолжайте вводить данные', reply_markup = markup)
-
-            return True 
-    return False
-           
-# Удаляем данные из буффера и бд для пользователей, если пользователь нажал Начать регистрацию с начала             
-def repeat_reg(message):
-    if message.text == 'Начать регистрацию с начала':
-        data = read()
-        if str(message.chat.id) in read():
-            del data[str(message.chat.id)]
-            save(data)
-        global BUFFER
-
-        if message.chat.id in BUFFER:
-            del BUFFER[message.chat.id]
-        return True
-    return False
-
-# Ввод номера договора (для посетителей)
-def ask_contract(message):
-
-    if repeat_reg(message):
-        return registration(message)
-
-    chat_id = message.chat.id
-    text = message.text
-
-    if not text.isdigit():
-        msg = bot.send_message(chat_id, 'Номер договора должен состоять из цифр, введите ещё раз.')
-        bot.register_next_step_handler(msg, ask_contract)
-        return
-
-    add_user(chat_id, text)
-    
-
-    # Проверка ФИО посетителя
-    sheet = read_BD('Информация для посетителей')
-    i = search_contract_number(chat_id)
-    j = search_categories('ФИО посетителя')
-
-    if not i:
-        content = read()
-        del content[str(chat_id)]
-        save(content)
-        msg = bot.send_message(chat_id, 'Номер вашего договора отсутстует в списке! ' + 
-                               'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
-        return bot.register_next_step_handler(msg, ask_contract)
-    
-    
-
-    user_name = sheet.cell(row = i, column = j).value
-
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    btn1 = types.KeyboardButton('Да')
-    btn2 = types.KeyboardButton('Нет')
-    markup.add(btn1, btn2)
-
-    msg = bot.send_message(chat_id, f'ФИО посетителя {user_name}?', reply_markup = markup)
-    bot.register_next_step_handler(msg, name_confirmation)
-
-
-
-# Подтверждение правильности введенных данных для посетителей
-def name_confirmation(message):
-    chat_id = message.chat.id
-    if message.text == 'Нет':
-        content = read()
-        del content[str(chat_id)]
-        save(content)
-        msg = bot.send_message(chat_id, 'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
-        bot.register_next_step_handler(msg, ask_contract)
-    elif message.text == 'Да':
-        del BUFFER[chat_id]
-        bot.send_message(chat_id, 'Вы успешно зарегистрировались!', reply_markup = keyboard_main_menu_visitor())
-
-# Основное меню для посетителей
-def keyboard_main_menu_visitor():
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
-    btn2 = types.KeyboardButton('Расписание')
-    btn1 = types.KeyboardButton('Задолжность')
-    btn3 = types.KeyboardButton('Ближайшая отработка')
-    markup.add(btn1, btn2, btn3)
-    return markup
-
+#==========Регистрация пользователей (студент)============#
 
 # Ввод ФИО (для студентов)
 def ask_name(message):
@@ -719,50 +753,10 @@ def main_menu_student():
     btn1 = types.KeyboardButton('Основное меню')
     markup.add(btn1)
     return markup
-
-    # Добавляем пользователя
-def add_user(chat_id, data, key=''): 
-    chat_id = str(chat_id)
-    
-    content = read()
-    if key == 'admin':
-        s = {'status': 'admin'}
-        content[chat_id] = s
-
-    elif key:
-
-        if key == 'group':
-            content[chat_id]['group'] = data
-        else:
-            s = {'status': 'student'}
-            s[key] = data
-            content[chat_id] = s
-    
-    else:
-        s = {'status': 'visitor'}
-        content[chat_id] = s
-        content[chat_id]['number'] = data
-    save(content) 
-    return 
+#====================================================================================================#
 
 
-# Считываем список пользователей
-def read(): 
-    if os.path.isfile('users.json'): 
-        file=open('users.json').read() 
-        if file: 
-            content=json.loads(file) 
-            return content 
-    return {} 
-
-# Сохраняем список пользователей
-def save(content): 
-    file=open('users.json', 'wt') 
-    file.write(json.dumps(content))
-
-#==================================#
 
 print('Бот запущен...')
-
 bot.polling()
 
