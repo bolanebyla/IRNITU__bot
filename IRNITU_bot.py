@@ -244,7 +244,7 @@ def text(message:Message):
     
     if user_status == 'visitor':
         # Расписание
-        if message.text == 'Расписание':
+        if message.text == 'Расписание занятий':
             bot.send_message(chat_id, timetable_visitor(chat_id))
     
         # Отработка
@@ -252,7 +252,7 @@ def text(message:Message):
             bot.send_message(chat_id, otrabotka(chat_id))
 
         # Задолжность по оплате
-        elif message.text == 'Задолжность':
+        elif message.text == 'Задолжность по оплате':
             bot.send_message(chat_id, owe(chat_id))
 
 
@@ -428,10 +428,8 @@ def keyboard_main_menu_admin():
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
     btn1 = types.KeyboardButton('Написать сообщение посетителям')
     btn2 = types.KeyboardButton('Написать сообщение студентам')
-    btn3 = types.KeyboardButton('Написать сообщение пользователю (по id)')
     markup.add(btn1)
     markup.add(btn2)
-    markup.add(btn3)
     return markup
 
 def send_message_visitors(message):
@@ -601,10 +599,11 @@ def name_confirmation(message):
 # Основное меню для посетителей
 def keyboard_main_menu_visitor():
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
-    btn2 = types.KeyboardButton('Расписание')
-    btn1 = types.KeyboardButton('Задолжность')
+    btn1 = types.KeyboardButton('Расписание занятий')
+    btn2 = types.KeyboardButton('Задолжность по оплате')
     btn3 = types.KeyboardButton('Ближайшая отработка')
-    markup.add(btn1, btn2, btn3)
+    markup.add(btn1)
+    markup.add(btn2, btn3)
     return markup
 
 
