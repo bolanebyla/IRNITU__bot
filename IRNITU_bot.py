@@ -8,6 +8,8 @@ from openpyxl import load_workbook
 from telebot.types import Message
 from telebot import types
 
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 
 bot = telebot.TeleBot(config.TOKEN)
@@ -326,9 +328,15 @@ def text(message:Message):
 
 # Открываем BD (возвращаем страницу)
 def read_BD(kategory):
-    #wb = load_workbook(config.BD)
-    wb = load_workbook('BD.xlsx')
-    sheet = wb[kategory]
+
+    scope = ["https://spreadsheets.google.com/feeds",
+         'https://www.googleapis.com/auth/spreadsheets',
+         "https://www.googleapis.com/auth/drive.file",
+         "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name('IRNITU-test-bot-ab63ec0cc978.json', scope)
+    client = gspread.authorize(creds)
+    wb = client.open("BD")
+    sheet = wb.worksheet(kategory)
     return sheet 
 
  # Вывод списка элементов категории (возвращает первый столбец)
@@ -339,8 +347,8 @@ def change_BD(kategory):
     i=2
     val = ''
     while(True):
-        val = sheet.cell(row = i, column = 1).value
-        if val == None:
+        val = sheet.cell(i, 1).value
+        if val == '':
             break
         data.append(val + '\n')
         i+=1
@@ -468,8 +476,8 @@ def owe(chat_id):
     i = search_contract_number(chat_id)
     j = search_categories('Задолженность по оплате')
 
-    sum = sheet.cell(row = i, column = j).value
-    if sum == None:
+    sum = sheet.cell(i, j).value
+    if sum == '':
         return 'Задолжности нет'
     return f'Задолжность по оплате {sum} руб'
 
@@ -480,8 +488,8 @@ def otrabotka(chat_id):
     i = search_contract_number(chat_id)
     j = search_categories('Ближайшая отработка')
 
-    date = str(sheet.cell(row = i, column = j).value)
-    time_lesson = str(sheet.cell(row = i, column = j+1).value)[:-3] 
+    date = str(sheet.cell(i, j).value)
+    time_lesson = str(sheet.cell(i, j+1).value)[:-3] 
     return timer.timer_otrabotka(date, time_lesson)
 
 
@@ -491,12 +499,12 @@ def timetable_visitor(chat_id):
     i = search_contract_number(chat_id)
     j = search_categories('Занятие 1')
 
-    weekday_lesson1 = sheet.cell(row = i, column = j).value
-    time_lesson1 = (str(sheet.cell(row = i, column = j+1).value))[:-3]
-    weekday_lesson2 = sheet.cell(row = i, column = j+2).value
-    time_lesson2 = (str(sheet.cell(row = i, column = j+3).value))[:-3]
-    cabinet = sheet.cell(row = i, column = j+4).value
-    teacher_name = sheet.cell(row = i, column = j+5).value
+    weekday_lesson1 = sheet.cell(i, j).value
+    time_lesson1 = (str(sheet.cell(i, j+1).value))[:-3]
+    weekday_lesson2 = sheet.cell(i, j+2).value
+    time_lesson2 = (str(sheet.cell(i, j+3).value))[:-3]
+    cabinet = sheet.cell(i, j+4).value
+    teacher_name = sheet.cell(i, j+5).value
 
     msg = ('Расписание занятий:\n'+
            f'{weekday_lesson1}  {time_lesson1}\n' + 
@@ -512,8 +520,8 @@ def search_categories(name): # принимает название столбц�
     sheet = read_BD('Информация для посетителей')
     j=1
     while True:
-        val = sheet.cell(row = 1, column = j).value
-        if  str(val) == None:
+        val = sheet.cell(1, j).value
+        if  str(val) == '':
             return print('Ошибка! Категория в БД не найдена')
         if  str(val) == name:
             return j 
@@ -528,12 +536,12 @@ def search_contract_number(chat_id):
 
     number = read()[str(chat_id)]['number']
     while(True):
-        val = sheet.cell(row = i, column = j).value
+        val = sheet.cell(i, j).value
 
         if number == str(val):
             return i
 
-        if sheet.cell(row = i, column = j).value == None :
+        if sheet.cell(i, j).value == '' :
             #bot.send_message(chat_id, 'Произошла ошибка. Попробуйте снова через какое-то время. Если это потвориться обратитесь к преподавателю') 
             return False
         i+=1
@@ -572,7 +580,7 @@ def ask_contract(message):
     
     
 
-    user_name = sheet.cell(row = i, column = j).value
+    user_name = sheet.cell(i, j).value
 
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     btn1 = types.KeyboardButton('Да')
@@ -626,13 +634,13 @@ def exp_mat_kol(name, kategory):
       i=2
       while(True):
         
-        val = sheet.cell(row = i, column = 1).value
+        val = sheet.cell(i, 1).value
 
         if str(name) == str(val):
-            if sheet.cell(row = i, column = 2).value == None :
+            if sheet.cell(i, 2).value == '' :
                 return '0'
             else:
-                return (sheet.cell(row = i, column = 2).value)
+                return (sheet.cell(i, 2).value)
         i+=1
 
 # Возвращает eдeницы измерения расходного материала
@@ -641,12 +649,12 @@ def exp_mat_ed_izm(name, kategory):
       i=2
       while(True):
         
-        val = sheet.cell(row = i, column = 1).value
+        val = sheet.cell(i, 1).value
         if str(name) == str(val):
-            if sheet.cell(row = i, column = 2).value == None :
+            if sheet.cell(i, 2).value == '' :
                 return ''
             else:
-                return (sheet.cell(row = i, column = 3).value)
+                return (sheet.cell(i, 3).value)
         i+=1
 
  # Изменить кол-во рас мат в базе данных 
@@ -706,9 +714,9 @@ def change_kol(message):
    # записывем новое значение в БД
     i=2
     while(True):
-       val = sheet.cell(row = i, column = 1).value
+       val = sheet.cell(i, 1).value
        if str(name) == str(val):
-           sheet.cell(row = i, column = 2).value = value
+           sheet.cell(i, 2).value = value
            wb.save('BD.xlsx')
            break
        i+=1
@@ -741,13 +749,13 @@ def info_equipment(name, kategory):
       i=2
       while(True):
         
-        val = sheet.cell(row = i, column = 1).value
+        val = sheet.cell(i, 1).value
 
         if str(name) == str(val):
-            if sheet.cell(row = i, column = 2).value == None :
+            if sheet.cell(i, 2).value == '' :
                 return '\n\nОписание не найдено'
             else:
-                return '\n\nОписание:\n' + sheet.cell(row = i, column = 2).value
+                return '\n\nОписание:\n' + sheet.cell(i, 2).value
         i+=1
 
 
@@ -759,10 +767,10 @@ def timetable(chat_id):
     i=2
     data = ''
     while(True):
-        day = sheet.cell(row = i, column = 1).value        
-        if day == None:
+        day = sheet.cell(i, 1).value        
+        if day == '':
             return bot.send_message(chat_id, data, reply_markup = main_menu_student())
-        time = sheet.cell(row = i, column = 2).value
+        time = sheet.cell(i, 2).value
 
         data = data + f'{day}    {time}\n'
         
