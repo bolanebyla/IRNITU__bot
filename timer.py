@@ -137,5 +137,3 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     msg = 'Следующее занятие состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(zanatie.strftime("%d.%m.%Y"), weekday, time_lesson, period.days, hh, mm, ss)
     print(msg)
     return msg
-
-timer_lesson(weekday_lesson1='вт', time_lesson1='19:00', weekday_lesson2='чт', time_lesson2='15:00')
