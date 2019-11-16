@@ -138,16 +138,6 @@ def ans(message:Message):
             btn = types.KeyboardButton('Отмена')
             markup.add(btn)
 
-            button1 = ('➡️ Израсходовать ' + 
-                   f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})  ⬅')
-            button2 = 'Вернуть'
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-
-            bot.edit_message_text(name +'\n\nВведите количество, которое хотите израсходовать', 
-                                  chat_id, message.message.message_id, reply_markup = keyboard)
-
             BUFFER[str(chat_id)] = name + 's' # Записываем в буфер название материала который выбрал пользователь и действие (s-spend)
             BUFFER['m_id' + str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
             
@@ -173,17 +163,6 @@ def ans(message:Message):
             markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
             btn = types.KeyboardButton('Отмена')
             markup.add(btn)
-
-            button1 = ('Израсходовать ' + 
-                   f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-            button2 = '➡️ Вернуть ⬅'
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-
-            bot.edit_message_text(name +'\n\nВведите количество, которое хотите вернуть', 
-                                  chat_id, message.message.message_id, reply_markup = keyboard)
-
 
             BUFFER[str(chat_id)] = name + 'b' # Записываем в буфер название материала который выбрал пользователь и действие (b-back)
             BUFFER['m_id' + str(chat_id)] = message.message.message_id # Записываем в буфер id сообщения для дальнейшего редактирования
@@ -287,19 +266,40 @@ def text(message:Message):
 
         # Вывод списка расходных материалов
         elif message.text == 'Расходные материалы':
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+            btn1 = types.KeyboardButton('Израсходовать')
+            btn2 = types.KeyboardButton('Вернуть')
+            btn3 = types.KeyboardButton('Основное меню')
+            markup.add(btn1, btn2)
+            markup.add(btn3)
+            bot.send_message(message.chat.id, 'Выберите действие', reply_markup = markup)
+
+        elif message.text == 'Израсходовать':
+
             eq = change_BD('Расходные материалы')
 
-            bot.send_message(message.chat.id, 'Расходные материалы:', reply_markup = main_menu_student())
+            bot.send_message(message.chat.id, 'Израсходовать', reply_markup = main_menu_student())
+            keyboard = types.InlineKeyboardMarkup()
             for i in range(len(eq)):
                 name = change_BD('Расходные материалы')[i][:-1]
-                button1 = ('Израсходовать ' + 
+                button1 = (name +
                            f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-                button2 = 'Вернуть'
-                keyboard = types.InlineKeyboardMarkup()
                 keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+            bot.send_message(message.chat.id,'Список расходных материалов:', 
+                             reply_markup = keyboard)    
+
+        elif message.text == 'Вернуть':
+            eq = change_BD('Расходные материалы')
+            bot.send_message(message.chat.id, 'Вернуть', reply_markup = main_menu_student())
+            keyboard = types.InlineKeyboardMarkup()
+            for i in range(len(eq)):
+                name = change_BD('Расходные материалы')[i][:-1]
+                button2 = name
+                
                 keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-                bot.send_message(message.chat.id, name, 
-                                 reply_markup = keyboard)    
+            bot.send_message(message.chat.id, 'Список расходных материалов:', 
+                             reply_markup = keyboard)    
+
 
         # Вывод расписания кабинета
         elif message.text == 'Расписание кабинета':
@@ -660,14 +660,7 @@ def change_kol(message):
     message_id = BUFFER['m_id' + str(chat_id)] # id сообщения для редактирования количества
 
     if text == 'Отмена':
-            # Меняем текст сообщения (обновляем данные, убираем спец символы)
-        button1 = ('Израсходовать ' + 
-                f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-        button2 = 'Вернуть'
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-        keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-        bot.edit_message_text(name, chat_id, message_id, reply_markup = keyboard)
+
         bot.send_message(chat_id, 'Отменено', reply_markup = main_menu_student())
 
         del BUFFER[str(chat_id)]
@@ -714,16 +707,20 @@ def change_kol(message):
        i+=1
 
 
-    # Меняем текст сообщения (количество)
-    button1 = ('Израсходовать ' + 
-               f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-    button2 = 'Вернуть'
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-    keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-    bot.edit_message_text(name, chat_id, message_id, reply_markup = keyboard)
+
 
     if action == 's': 
+        # Меняем текст сообщения (количество)
+        eq = change_BD('Расходные материалы')
+        keyboard = types.InlineKeyboardMarkup()
+        for i in range(len(eq)):
+            name = change_BD('Расходные материалы')[i][:-1]
+            button1 = (name +
+                        f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
+            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+        bot.edit_message_text('Список расходных материалов:', chat_id, message_id, reply_markup = keyboard)
+
+
         bot.send_message(chat_id, f'Израсходовано {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}',
                          reply_markup = main_menu_student())
     if action == 'b': 
