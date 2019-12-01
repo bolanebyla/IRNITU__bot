@@ -9,11 +9,9 @@ TZ_IRKUTSK = pytz.timezone('Asia/Irkutsk') # Часовой пояс
 
 def timer_otrabotka(date='', time_lesson = ''):
     global TZ_IRKUTSK
-    print(date)
     if date == 'None' or time_lesson == 'None':
         return 'Ближайших отработок нет'
     time_lesson = time_lesson.split(':')
-    print(time_lesson)
 
     now = datetime.now(TZ_IRKUTSK)
     year = int(now.strftime('%Y'))
@@ -47,7 +45,6 @@ def timer_otrabotka(date='', time_lesson = ''):
        weekday = weekday_en_ful[weekday] 
 
     msg = 'Отработка состоится:\n{} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(otrabotka.strftime("%d.%m.%Y"), weekday, time_lesson, period.days, hh, mm, ss)
-    print (msg)
     return msg
 
 
@@ -71,7 +68,6 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     m = int(now.strftime('%M'))
     s = int(now.strftime('%S'))
     now = datetime(year, month, day,h, m, s) # Текущее время
-    print(now.strftime("%d %B %Y (%a)")) 
     weekday_now = (now.strftime('%a')).lower() # Текущий день недели
 
     weekday_en = {'mon':'пн','tue':'вт', 'web':'ср', 'thu':'чт', 'fri':'пт', 'sat':'сб', 'sun':'вс'}
@@ -119,7 +115,6 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     day = int(zanatie_date.strftime('%d'))
     zanatie = datetime(year, month, day,int(time_lesson[0]),int(time_lesson[1])) # Дата и время ближайшего занятия
     time_lesson = time_lesson[0] + ':' + time_lesson[1]
-    print(zanatie.strftime("%d %B %Y (%a)")) 
 
     period = zanatie - now # Сколько осталось
 
@@ -135,5 +130,4 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
 
 
     msg = 'Следующее занятие состоится: {} ({}) в {} \n\nЧерез {} д {} ч {} мин {} сек'.format(zanatie.strftime("%d.%m.%Y"), weekday, time_lesson, period.days, hh, mm, ss)
-    print(msg)
     return msg
