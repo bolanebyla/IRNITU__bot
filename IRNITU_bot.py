@@ -30,7 +30,7 @@ def registration(message):
 # /start
 @bot.message_handler(commands=['start'])
 def start_message(message:Message):
-    print ('Нажили start', message)
+    print ('Написали start', message)
     bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
     registration(message)
 
@@ -49,7 +49,6 @@ def repeat_registration(message):
 
 def repeat_registration_answer(message):
     if message.text == 'Продолжить':
-        print('Продолжить')
         content = read()
         del content[str(message.chat.id)]
         save(content)
@@ -175,7 +174,7 @@ def ans(message:Message):
 #======================================================Обработка текстовых сообщений=================================#
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
-    print ('Что-то написали', message.json)
+    print ('Написали', message.json)
 
     chat_id = message.chat.id
 
@@ -245,6 +244,7 @@ def text(message:Message):
 #===========================ДЛЯ СТУДЕНТОВ=================================#
         
     if user_status == 'student':
+
         # Вывод списка оборудования
         if message.text == 'Оборудование' :
             eq = change_BD('Оборудование')
@@ -255,13 +255,24 @@ def text(message:Message):
                 keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
                                                         change_BD('Оборудование')[i]))
                 bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
+
         # Вывод списка инструментов
         elif message.text == 'Инструмент':
             tools = change_BD('Инструмент')
             tools_str =''
             bot.send_message(message.chat.id, 'Доступный инструмент:', reply_markup = main_menu_student())
-            for i in tools:
-                tools_str = tools_str + i
+
+            sheet = read_BD('Инструмент')
+            
+
+            for i in range(len(tools)): 
+                tools_str = tools_str + str(i + 1) +'. ' + tools[i][:-1]
+                val = sheet.cell(row = i + 2, column = 2).value
+                if not (val == None):
+                    tools_str = tools_str +f' ({val})' + '\n'
+                else:
+                    tools_str = tools_str + '\n'
+
             bot.send_message(message.chat.id, tools_str)
 
         # Вывод списка расходных материалов
@@ -331,15 +342,15 @@ def read_BD(kategory):
     sheet = wb[kategory]
     return sheet 
 
- # Вывод списка элементов категории (возвращает первый столбец)
-def change_BD(kategory):
+ # Вывод списка элементов категории (столбец)
+def change_BD(kategory, column_number=1):
     sheet = read_BD(kategory)
 
     data = []
     i=2
     val = ''
     while(True):
-        val = sheet.cell(row = i, column = 1).value
+        val = sheet.cell(row = i, column = column_number).value
         if val == None:
             break
         data.append(val + '\n')
@@ -507,6 +518,8 @@ def timetable_visitor(chat_id):
     return msg
 
 
+
+
 # Номер столбца
 def search_categories(name): # принимает название столбца
     sheet = read_BD('Информация для посетителей')
@@ -537,6 +550,7 @@ def search_contract_number(chat_id):
             #bot.send_message(chat_id, 'Произошла ошибка. Попробуйте снова через какое-то время. Если это потвориться обратитесь к преподавателю') 
             return False
         i+=1
+
 
 #==========Регистрация пользователей (посетитель)============#
 
