@@ -562,12 +562,6 @@ def ask_contract(message):
 
     chat_id = message.chat.id
     text = message.text
-
-    if not text.isdigit():
-        msg = bot.send_message(chat_id, 'Номер договора должен состоять из цифр, введите ещё раз.')
-        bot.register_next_step_handler(msg, ask_contract)
-        return
-
     add_user(chat_id, text)
     
 
