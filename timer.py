@@ -76,7 +76,7 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
         weekday_now = weekday_en[weekday_now]
 
 
-    data  = [{'k': 0, 'time_lesson': time_lesson1}, {'k': 0, 'time_lesson': time_lesson2}]
+    data  = [{'distance': 0, 'time_lesson': time_lesson1}, {'distance': 0, 'time_lesson': time_lesson2}]
     best_distance = 8
     time_lesson = time_lesson1
     weekday_lesson = weekday_lesson1
@@ -103,10 +103,14 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
                         if j == weekday_lessons[m]:
                             k-=1
                             break
-        data[m]['k'] = k
-        if data [m]['k'] < best_distance:
-            best_distance = data[m]['k']
+        data[m]['distance'] = k
+        if data [m]['distance'] <= best_distance:
+            # Если занятие сегодня уже прошло 
+            if data [m]['distance'] == 0 and ((int(data[m]['time_lesson'][0])*60*60 + int(data[m]['time_lesson'][1])*60) - (h*60*60 + m*60 + s)) < 0:
+                continue
+            best_distance = data[m]['distance']
             time_lesson = data[m]['time_lesson']
+           
             weekday_lesson = weekday_lessons[m]
 
     zanatie_date = now + timedelta(best_distance)
@@ -115,6 +119,7 @@ def timer_lesson(weekday_lesson1='', time_lesson1='', weekday_lesson2='', time_l
     day = int(zanatie_date.strftime('%d'))
     zanatie = datetime(year, month, day,int(time_lesson[0]),int(time_lesson[1])) # Дата и время ближайшего занятия
     time_lesson = time_lesson[0] + ':' + time_lesson[1]
+
 
     period = zanatie - now # Сколько осталось
 
