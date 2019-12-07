@@ -20,7 +20,7 @@ def registration(message):
     BUFFER = {}
     keyboard = types.InlineKeyboardMarkup()
     button_student = 'Студент'
-    button_visitor = 'Посетитель'
+    button_visitor = 'Родитель'
 
     keyboard.add(types.InlineKeyboardButton(text = button_student, callback_data = 'student'))
     keyboard.add(types.InlineKeyboardButton(text = button_visitor, callback_data = 'visitor'))
@@ -30,12 +30,12 @@ def registration(message):
 # /start
 @bot.message_handler(commands=['start'])
 def start_message(message:Message):
-    print ('Написали start', message)
+    print ('Написали start', f'{message}\n')
     bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
     registration(message)
 
 @bot.message_handler(commands=['help'])
-def repeat_registration(message):
+def help(message):
     bot.send_message(message.chat.id,'Список команд:\n'+
                      '/reg - пройти регистрацию ещё раз')
 
@@ -79,7 +79,7 @@ def repeat_registration_answer(message):
 # Обработка ответов от чат-клавиатуры
 @bot.callback_query_handler(func=lambda message:True)
 def ans(message:Message):
-    print ('Кнопка', message.message.json)
+    print ('Кнопка', f'{message.message.json}\n')
     chat_id = message.message.chat.id
     global BUFFER
     # регистрация студента
@@ -179,7 +179,7 @@ def ans(message:Message):
 #======================================================Обработка текстовых сообщений=================================#
 @bot.message_handler(content_types=['text'])
 def text(message:Message):
-    print ('Написали', message.json)
+    print ('Написали', f'{message.json}\n')
 
     chat_id = message.chat.id
 
@@ -593,7 +593,7 @@ def ask_contract(message):
         del content[str(chat_id)]
         save(content)
         msg = bot.send_message(chat_id, 'Номер вашего договора отсутстует в списке! ' + 
-                               'Введите номер договора повторно, если ситуация повториться, обратитесь к преподавателю')
+                               'Введите номер договора повторно. Если ситуация повториться, обратитесь к преподавателю')
         return bot.register_next_step_handler(msg, ask_contract)
     
     
@@ -781,7 +781,7 @@ def search_eq(message):
     check = False
     for i in range(len(eq_list)):
         if message.text in eq_list[i][:-1]:
-            if i == 0:
+            if not check:
                 bot.send_message(message.chat.id, 'По вашему запросу найдено:', reply_markup = keyboard_search_eq())
             check = True
             button = 'Описание'
