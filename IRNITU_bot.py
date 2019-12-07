@@ -34,6 +34,11 @@ def start_message(message:Message):
     bot.send_message(message.chat.id,'Привет, я IRNITU_bot!\n' + 'Проидите регистрацию')
     registration(message)
 
+@bot.message_handler(commands=['help'])
+def repeat_registration(message):
+    bot.send_message(message.chat.id,'Список команд:\n'+
+                     '/reg - пройти регистрацию ещё раз')
+
 @bot.message_handler(commands=['reg'])
 def repeat_registration(message):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
@@ -246,7 +251,10 @@ def text(message:Message):
     if user_status == 'student':
 
         # Вывод списка оборудования
-        if message.text == 'Оборудование' :
+        if message.text == 'Оборудование':
+            bot.send_message(message.chat.id, 'Выберите действие',reply_markup = keyboard_search_eq())
+
+        elif message.text == 'Список оборудования' :
             eq = change_BD('Оборудование')
             bot.send_message(message.chat.id, 'Список оборудования:', reply_markup = main_menu_student())
             for i in range(len(eq)):
@@ -254,7 +262,17 @@ def text(message:Message):
                 keyboard = types.InlineKeyboardMarkup()
                 keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
                                                         change_BD('Оборудование')[i]))
-                bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)    
+                bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)
+                
+
+        # Поиск оборудования по названию 
+        elif message.text == 'Поиск по названию оборудования':
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+            btn = types.KeyboardButton('Отмена')
+            markup.add(btn)
+            msg = bot.send_message(chat_id, 'Введите название', reply_markup = markup)
+            bot.register_next_step_handler(msg, search_eq)
+
 
         # Вывод списка инструментов
         elif message.text == 'Инструмент':
@@ -755,7 +773,34 @@ def info_equipment(name, kategory):
                 return '\n\nОписание:\n' + sheet.cell(row = i, column = 2).value
         i+=1
 
-
+# Поиск оборудования по названию
+def search_eq(message):
+    if message.text == 'Отмена':
+        return bot.send_message(message.chat.id, 'Отменено', reply_markup = keyboard_search_eq())
+    eq_list = change_BD('Оборудование')
+    check = False
+    for i in range(len(eq_list)):
+        if message.text in eq_list[i][:-1]:
+            if i == 0:
+                bot.send_message(message.chat.id, 'По вашему запросу найдено:', reply_markup = keyboard_search_eq())
+            check = True
+            button = 'Описание'
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text = button, callback_data = 'info_eq' + 
+                                                    change_BD('Оборудование')[i]))
+            bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)
+    if not(check):
+        return bot.send_message(message.chat.id, 'Оборудование не найдено', reply_markup = keyboard_search_eq())
+    
+# Меню оборудования
+def keyboard_search_eq():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Список оборудования')
+    btn2 = types.KeyboardButton('Поиск по названию оборудования')
+    btn3 = types.KeyboardButton('Основное меню')
+    markup.add(btn1, btn2)
+    markup.add(btn3)
+    return markup
 
 #===========Расписание кабинета===========#
 def timetable(chat_id):
