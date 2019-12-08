@@ -293,7 +293,7 @@ def text(message:Message):
 
             bot.send_message(message.chat.id, tools_str)
 
-        # Вывод списка расходных материалов
+        # Меню расходные материалы
         elif message.text == 'Расходные материалы':
             markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
             btn1 = types.KeyboardButton('Израсходовать')
@@ -302,32 +302,18 @@ def text(message:Message):
             markup.add(btn1, btn2)
             markup.add(btn3)
             bot.send_message(message.chat.id, 'Выберите действие', reply_markup = markup)
+            
 
+        # Вывод списка расходных материалов (Израсходовать)
         elif message.text == 'Израсходовать':
-
-            eq = change_BD('Расходные материалы')
-
-            bot.send_message(message.chat.id, 'Израсходовать', reply_markup = main_menu_student())
-            keyboard = types.InlineKeyboardMarkup()
-            for i in range(len(eq)):
-                name = change_BD('Расходные материалы')[i][:-1]
-                button1 = (name +
-                           f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
-                keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
-            bot.send_message(message.chat.id,'Список расходных материалов:', 
-                             reply_markup = keyboard)    
-
+            msg = bot.send_message(chat_id, 'Выберите действие', reply_markup = keyboard_search_exp_mat())
+            bot.register_next_step_handler(msg, exp_mat_ras)
+ 
+        # Вывод списка расходных материалов (Вернуть)
         elif message.text == 'Вернуть':
-            eq = change_BD('Расходные материалы')
-            bot.send_message(message.chat.id, 'Вернуть', reply_markup = main_menu_student())
-            keyboard = types.InlineKeyboardMarkup()
-            for i in range(len(eq)):
-                name = change_BD('Расходные материалы')[i][:-1]
-                button2 = name
-                
-                keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
-            bot.send_message(message.chat.id, 'Список расходных материалов:', 
-                             reply_markup = keyboard)    
+            msg = bot.send_message(chat_id, 'Выберите действие', reply_markup = keyboard_search_exp_mat())
+            bot.register_next_step_handler(msg, exp_mat_ver)
+ 
 
 
         # Вывод расписания кабинета
@@ -732,9 +718,6 @@ def change_kol(message):
            break
        i+=1
 
-
-
-
     if action == 's': 
         # Меняем текст сообщения (количество)
         eq = change_BD('Расходные материалы')
@@ -755,6 +738,120 @@ def change_kol(message):
     del BUFFER[str(chat_id)]
     del BUFFER['m_id' + str(chat_id)]
     return
+
+# Поиск по расходного материала по слову
+def search_exp_mat_ras(message): # Расходование
+    if message.text == 'Отмена':
+        msg = bot.send_message(message.chat.id, 'Отменено', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg, exp_mat_ras)
+
+    exp_mat = change_BD('Расходные материалы')
+    keyboard = types.InlineKeyboardMarkup()
+    check = False
+    for i in range(len(exp_mat)):
+        if message.text.lower() in exp_mat[i][:-1].lower():
+            check = True
+            name = exp_mat[i][:-1]
+            button1 = (name +
+                        f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
+            keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+
+    if not(check):
+        msg = bot.send_message(message.chat.id, 'По вашему запросу ничего не найдено', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg, exp_mat_ras)
+    bot.send_message(message.chat.id, 'Израсходовать', reply_markup = keyboard_search_exp_mat())
+    msg = bot.send_message(message.chat.id,'По вашему запросу найдено:', 
+                        reply_markup = keyboard)  
+    bot.register_next_step_handler (msg, exp_mat_ras)
+
+def search_exp_mat_ver(message): # Вернуть 
+    if message.text == 'Отмена':
+        msg = bot.send_message(message.chat.id, 'Отменено', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg, exp_mat_ras)
+
+    check = False
+    exp_mat = change_BD('Расходные материалы')
+    keyboard = types.InlineKeyboardMarkup()
+    for i in range(len(exp_mat)):
+        if message.text.lower() in exp_mat[i][:-1].lower():
+            check = True
+            name = exp_mat[i][:-1]
+            button2 = name
+            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
+
+    if not(check):
+        msg = bot.send_message(message.chat.id, 'По вашему запросу ничего не найдено', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg, exp_mat_ras)
+    bot.send_message(message.chat.id, 'Вернуть', reply_markup = keyboard_search_exp_mat())
+    msg = bot.send_message(message.chat.id,'По вашему запросу найдено:', 
+                        reply_markup = keyboard) 
+    bot.register_next_step_handler (msg, exp_mat_ver)
+
+# Реализвация меню расходных материалов (израсходовать)
+def exp_mat_ras(message:Message):
+    if message.text == 'Основное меню':
+        return bot.send_message(message.chat.id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
+
+    elif message.text == 'Поиск по названию':
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+        btn = types.KeyboardButton('Отмена')
+        markup.add(btn)
+        msg = bot.send_message(message.chat.id, 'Введите название', reply_markup = markup)
+        bot.register_next_step_handler(msg, search_exp_mat_ras)
+
+    elif message.text == 'Список расходных материалов':
+            exp_mat = change_BD('Расходные материалы')
+            bot.send_message(message.chat.id, 'Израсходовать', reply_markup = main_menu_student())
+            keyboard = types.InlineKeyboardMarkup()
+            for i in range(len(exp_mat)):
+                name = exp_mat[i][:-1]
+                button1 = (name +
+                           f'(доступно: {str(exp_mat_kol(name, "Расходные материалы"))} {exp_mat_ed_izm(name, "Расходные материалы")})')
+                keyboard.add(types.InlineKeyboardButton(text = button1, callback_data = 'spend_exp_mat' + name))
+            bot.send_message(message.chat.id,'Список расходных материалов:', 
+                             reply_markup = keyboard)   
+    else:
+        msg = bot.send_message(message.chat.id, 'Выберите пункт меню', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg,exp_mat_ras)
+    
+
+# Реализвация меню расходных материалов (вернуть)
+def exp_mat_ver(message:Message):
+    if message.text == 'Основоное меню':
+        return bot.send_message(message.chat.id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
+
+    elif message.text == 'Поиск по названию':
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+        btn = types.KeyboardButton('Отмена')
+        markup.add(btn)
+        msg = bot.send_message(message.chat.id, 'Введите название', reply_markup = markup)
+        bot.register_next_step_handler(msg, search_exp_mat_ver)
+
+    elif message.text == 'Список расходных материалов':
+        exp_mat = change_BD('Расходные материалы')
+        bot.send_message(message.chat.id, 'Вернуть', reply_markup = main_menu_student())
+        keyboard = types.InlineKeyboardMarkup()
+        for i in range(len(exp_mat)):
+            name = exp_mat[i][:-1]
+            button2 = name
+            keyboard.add(types.InlineKeyboardButton(text = button2, callback_data = 'cancel_spend_exp_mat' + name))
+        bot.send_message(message.chat.id, 'Список расходных материалов:', 
+                            reply_markup = keyboard)   
+    else:
+        msg = bot.send_message(message.chat.id, 'Выберите пункт меню', reply_markup = keyboard_search_exp_mat())
+        return bot.register_next_step_handler (msg,exp_mat_ver)
+
+# Меню 2 расходного материала 
+def keyboard_search_exp_mat():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=False, resize_keyboard=True)
+    btn1 = types.KeyboardButton('Список расходных материалов')
+    btn2 = types.KeyboardButton('Поиск по названию')
+    btn3 = types.KeyboardButton('Основное меню')
+    markup.add(btn1, btn2)
+    markup.add(btn3)
+    return markup
+
+
 
 #==========Оборудование============#
 
@@ -780,7 +877,7 @@ def search_eq(message):
     eq_list = change_BD('Оборудование')
     check = False
     for i in range(len(eq_list)):
-        if message.text in eq_list[i][:-1]:
+        if message.text.lower() in eq_list[i][:-1].lower():
             if not check:
                 bot.send_message(message.chat.id, 'По вашему запросу найдено:', reply_markup = keyboard_search_eq())
             check = True
@@ -790,7 +887,7 @@ def search_eq(message):
                                                     change_BD('Оборудование')[i]))
             bot.send_message(message.chat.id, change_BD('Оборудование')[i], reply_markup = keyboard)
     if not(check):
-        return bot.send_message(message.chat.id, 'Оборудование не найдено', reply_markup = keyboard_search_eq())
+        return bot.send_message(message.chat.id, 'По вышему запросу ничего не найдено', reply_markup = keyboard_search_eq())
     
 # Меню оборудования
 def keyboard_search_eq():
