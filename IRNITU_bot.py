@@ -144,13 +144,13 @@ def ans(message:Message):
 
             BUFFER[str(chat_id)] = name + 's' # Записываем в буфер название материала который выбрал пользователь и действие (s-spend)
             BUFFER['m_id' + str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
-            BUFFER['search_list_' + str(chat_id)] = None
+            BUFFER['search_list_' + str(chat_id)] = None # Не поиск по слову 
 
             msg = bot.send_message(chat_id, name +'\nВведите количество, которое хотите израсходовать', reply_markup = markup)
             bot.register_next_step_handler(msg, change_kol)
 
 
-    # Кнопка израсходовать (при поиске по слову)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # Кнопка израсходовать (при поиске по слову)
     if message.data[:20] == 'search_spend_exp_mat':
         
         name = message.data[20:]
@@ -171,7 +171,7 @@ def ans(message:Message):
 
             BUFFER[str(chat_id)] = name + 's' # Записываем в буфер название материала который выбрал пользователь и действие (s-spend)
             BUFFER['m_id' + str(chat_id)] = message.message.message_id #записываем в буфер id сообщения для дальнейшего редактирования
-            BUFFER['search_list_' + str(chat_id)] = name
+            BUFFER['search_list_' + str(chat_id)] = name # Название элемента при поиске по слову 
             msg = bot.send_message(chat_id, name +'\nВведите количество, которое хотите израсходовать', reply_markup = markup)
             bot.register_next_step_handler(msg, change_kol)
 
@@ -198,6 +198,7 @@ def ans(message:Message):
 
             BUFFER[str(chat_id)] = name + 'b' # Записываем в буфер название материала который выбрал пользователь и действие (b-back)
             BUFFER['m_id' + str(chat_id)] = message.message.message_id # Записываем в буфер id сообщения для дальнейшего редактирования
+            BUFFER['search_list_' + str(chat_id)] = None # Не поиск по слову 
             
             msg = bot.send_message(chat_id, name +'\nВведите количество, которое хотите вернуть', reply_markup = markup)
             bot.register_next_step_handler(msg, change_kol)
@@ -284,7 +285,7 @@ def text(message:Message):
 
         elif message.text == 'Список оборудования' :
             eq = change_BD('Оборудование')
-            bot.send_message(message.chat.id, 'Список оборудования:', reply_markup = main_menu_student())
+            bot.send_message(message.chat.id, 'Список оборудования:', reply_markup = keyboard_main_menu_student())
             for i in range(len(eq)):
                 button = 'Описание'
                 keyboard = types.InlineKeyboardMarkup()
@@ -306,7 +307,7 @@ def text(message:Message):
         elif message.text == 'Инструмент':
             tools = change_BD('Инструмент')
             tools_str =''
-            bot.send_message(message.chat.id, 'Доступный инструмент:', reply_markup = main_menu_student())
+            bot.send_message(message.chat.id, 'Доступный инструмент:', reply_markup = keyboard_main_menu_student())
 
             sheet = read_BD('Инструмент')
             
@@ -694,21 +695,18 @@ def change_kol(message):
     chat_id = message.chat.id
     text = message.text
     global BUFFER
-    print (BUFFER)
-
-    #!!!!!!!!!!!!! добавить везде None!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    search_list = BUFFER['search_list_' + str(chat_id)] # Список рас мат которые были найдены при поиске по слову 
-    
-
-
     action = BUFFER[str(chat_id)][-1] # Действие которое нужно выполнить(s-spend, b-back)
+
+
+    search_list = BUFFER['search_list_' + str(chat_id)] # Рас мат который был найден при поиске по слову 
+
 
     name = BUFFER[str(chat_id)][:-1] # Название материала
     message_id = BUFFER['m_id' + str(chat_id)] # id сообщения для редактирования количества
 
     if text == 'Отмена':
 
-        bot.send_message(chat_id, 'Отменено', reply_markup = main_menu_student())
+        bot.send_message(chat_id, 'Отменено', reply_markup = keyboard_main_menu_student())
 
         del BUFFER[str(chat_id)]
         del BUFFER['m_id' + str(chat_id)]
@@ -780,10 +778,10 @@ def change_kol(message):
 
 
         bot.send_message(chat_id, f'Израсходовано {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}',
-                         reply_markup = main_menu_student())
+                         reply_markup = keyboard_main_menu_student())
     if action == 'b': 
         bot.send_message(chat_id, f'Возвращено {message.text} {exp_mat_ed_izm(name, "Расходные материалы")}', 
-                         reply_markup = main_menu_student())
+                         reply_markup = keyboard_main_menu_student())
     del BUFFER[str(chat_id)]
     del BUFFER['m_id' + str(chat_id)]
     del BUFFER['search_list_' + str(chat_id)]
@@ -849,7 +847,7 @@ def exp_mat_ras(message:Message):
 
     elif message.text == 'Список расходных материалов':
             exp_mat = change_BD('Расходные материалы')
-            bot.send_message(message.chat.id, 'Израсходовать', reply_markup = main_menu_student())
+            bot.send_message(message.chat.id, 'Израсходовать', reply_markup = keyboard_main_menu_student())
             keyboard = types.InlineKeyboardMarkup()
             for i in range(len(exp_mat)):
                 name = exp_mat[i][:-1]
@@ -865,7 +863,7 @@ def exp_mat_ras(message:Message):
 
 # Реализвация меню расходных материалов (вернуть)
 def exp_mat_ver(message:Message):
-    if message.text == 'Основоное меню':
+    if message.text == 'Основное меню':
         return bot.send_message(message.chat.id, 'Возвращено в основное меню', reply_markup = keyboard_main_menu_student())
 
     elif message.text == 'Поиск по названию':
@@ -877,7 +875,7 @@ def exp_mat_ver(message:Message):
 
     elif message.text == 'Список расходных материалов':
         exp_mat = change_BD('Расходные материалы')
-        bot.send_message(message.chat.id, 'Вернуть', reply_markup = main_menu_student())
+        bot.send_message(message.chat.id, 'Вернуть', reply_markup = keyboard_main_menu_student())
         keyboard = types.InlineKeyboardMarkup()
         for i in range(len(exp_mat)):
             name = exp_mat[i][:-1]
@@ -956,7 +954,7 @@ def timetable(chat_id):
     while(True):
         day = sheet.cell(row = i, column = 1).value        
         if day == None:
-            return bot.send_message(chat_id, data, reply_markup = main_menu_student())
+            return bot.send_message(chat_id, data, reply_markup = keyboard_main_menu_student())
         time = sheet.cell(row = i, column = 2).value
 
         data = data + f'{day}    {time}\n'
